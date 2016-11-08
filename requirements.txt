@@ -1,0 +1,2 @@
+# go dependencies
+github.com/dontpanic92/wxGo/wx
