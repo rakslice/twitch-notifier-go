@@ -47,8 +47,8 @@ type MainStatusWindowImpl struct {
 	app *OurTwitchNotifierMain
 }
 
-func InitMainStatusWindowImpl() MainStatusWindowImpl {
-	out := MainStatusWindowImpl{}
+func InitMainStatusWindowImpl() *MainStatusWindowImpl {
+	out := &MainStatusWindowImpl{}
 	out.MainStatusWindow = *initMainStatusWindow(out)
 	return out
 }
@@ -476,12 +476,13 @@ func InitOurTwitchNotifierMain() *OurTwitchNotifierMain {
 	return out
 }
 
-func (app OurTwitchNotifierMain) log(msg string) {
+func (app *OurTwitchNotifierMain) log(msg string) {
 	line_item := fmt.Sprintf("%s: %s", time.Now(), msg)
 	app.window_impl.list_log.Append(line_item)
 }
 
 func main() {
+
 	// FIXME figure out where this part needs to fit:
 	twitch_notifier_main := InitOurTwitchNotifierMain()
 	twitch_notifier_main.options = parse_args()
@@ -492,11 +493,10 @@ func main() {
 	}
 
 	// The original main code I was using to test the generated wx skeleton
-	fmt.Println("Hello, world!")
 	app := wx.NewApp()
 	frame := InitMainStatusWindowImpl()
 	frame.app = twitch_notifier_main
-	twitch_notifier_main.window_impl = &frame
+	twitch_notifier_main.window_impl = frame
 	frame.Show()
 	app.MainLoop()
 	return
