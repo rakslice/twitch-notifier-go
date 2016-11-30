@@ -42,6 +42,7 @@ func (obj Kraken) kraken(data interface{}, path ...string) error {
 		return err
 	}
 	defer resp.Body.Close()
+	assert(resp.StatusCode == 200, "got status code %s", resp.StatusCode)
 
 	return json.NewDecoder(resp.Body).Decode(data)
 }
