@@ -1,10 +1,5 @@
 package main
 
-// Workaround for both wxGo and wxshowballoon both importing the headers
-
-//#cgo LDFLAGS: -Wl,--allow-multiple-definition
-import "C"
-
 import (
 	"fmt"
 	"log"
@@ -20,7 +15,6 @@ import (
 	"encoding/json"
 	"net/url"
 	"sort"
-	"wxshowballoon"
 )
 
 
@@ -308,7 +302,9 @@ func (win *MainStatusWindowImpl) _dispense_remaining_notifications() error {
 
 	// show the notification
 	win.set_balloon_click_callback(notification.callback)
-	result := wxshowballoon.ShowBalloon(win.toolbar_icon, notification.title, notification.msg, 200, 0, _get_asset_icon())
+	var delay_ms uint = 200
+	var flags int = 0
+	result := win.toolbar_icon.ShowBalloon(notification.title, notification.msg, delay_ms, flags, _get_asset_icon())
 	assert(result, "error showing balloon")
 	return nil
 }
