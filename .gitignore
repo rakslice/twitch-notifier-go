@@ -2,3 +2,4 @@
 *.exe
 *.iml
 *.exe~
+pkg/

@@ -1,30 +1,33 @@
 package main
 
+// Workaround for both wxGo and wxshowballoon both importing the headers
+
+//#cgo LDFLAGS: -Wl,--allow-multiple-definition
+import "C"
+
 import (
 	"fmt"
-	"github.com/dontpanic92/wxGo/wx"
-	"github.com/xilp/systray"
-	"path"
 	"log"
+	"github.com/dontpanic92/wxGo/wx"
 	"flag"
-	"sort"
-	"net/url"
+	"sync"
 	"time"
+	"path/filepath"
+	"path"
 	"runtime"
 	"os/exec"
-	"path/filepath"
-	"unsafe"
-	"syscall"
 	"strings"
 	"encoding/json"
-	"sync"
-	//"runtime/debug"
+	"net/url"
+	"sort"
+	"wxshowballoon"
 )
+
 
 func assert(condition bool, message string, a... interface{}) {
 	if !condition {
 		formatted := fmt.Sprintf(message, a...)
-		msg(formatted, "assertion failure")
+		msg("assertion failure: %s", formatted)
 		log.Fatal(formatted)
 	}
 }
@@ -74,7 +77,6 @@ type MainStatusWindowImpl struct {
 	app wx.App
 	main_obj *OurTwitchNotifierMain
 	toolbar_icon wx.TaskBarIcon
-	//toolbar_icon *systray.Systray
 	cur_timeout_timer *TimerWrapper
 	cur_timeout_callback func() error
 	balloon_click_callback func() error
@@ -107,9 +109,6 @@ func InitMainStatusWindowImpl() *MainStatusWindowImpl {
 
 	out.toolbar_icon = wx.NewTaskBarIcon()
 
-	// if we were using the systray module's toolbar icon implementation we would do:
-	//out.toolbar_icon = systray.New(_get_asset_icon_filename(), "bar", 6333)
-
 	the_icon := _get_asset_icon()
 	out.toolbar_icon.SetIcon(the_icon)
 
@@ -117,9 +116,6 @@ func InitMainStatusWindowImpl() *MainStatusWindowImpl {
 	wx.Bind(out.toolbar_icon, wx.EVT_TASKBAR_LEFT_DCLICK, out._on_toolbar_icon_left_dclick, wx.ID_ANY)
 	wx.Bind(out.toolbar_icon, wx.EVT_TASKBAR_BALLOON_CLICK, out._on_toolbar_balloon_click, wx.ID_ANY)
 	wx.Bind(out.toolbar_icon, wx.EVT_TASKBAR_BALLOON_TIMEOUT, out._on_toolbar_balloon_timeout, wx.ID_ANY)
-
-	// for the systray module's toolbar icon the event handler registration would look like:
-	//out.toolbar_icon.OnClick(out._on_toolbar_balloon_click)
 
 	twitch_notifier_main := InitOurTwitchNotifierMain()
 	twitch_notifier_main.options = parse_args()
@@ -206,8 +202,8 @@ func (helper *WxTimeHelper) on_thread_event(e wx.Event) {
 }
 
 /**
-time.AfterFunc runs its callback in a goroutine. This is a version that instead runs the callback in the wx main thread by passing a
-wx.ThreadingEvent
+time.AfterFunc() runs its callback in a goroutine. However we can't interact with wx GUI stuff outside the main thread.
+So here's a wrapper for it that runs the callback in the wx main thread by passing a wx.ThreadingEvent
  */
 func (helper *WxTimeHelper) AfterFunc(duration time.Duration, callback func()) *TimerWrapper {
 	// get a callback num and file the callback
@@ -306,59 +302,15 @@ func (win *MainStatusWindowImpl) _dispense_remaining_notifications() error {
 	}
 
 	win.notifications_queue_in_progress = true
-	// pop a notification
+	// pop a notification off the queue
 	var notification NotificationQueueEntry = win.notifications_queue[0]
 	win.notifications_queue = append(win.notifications_queue[:0], win.notifications_queue[1:]...)
 
-	// send a notification
+	// show the notification
 	win.set_balloon_click_callback(notification.callback)
-	//icon := win.GetIcon()
-	//icon_handler = icon.GetHandle()
-	// TODO is there a case where we don't want to GetHandle?
-	//win.toolbar_icon.ShowBalloon(notification.title, notification.msg, 0, icon_handle)
-	msg("FIXME the actual tooltip showing is disabled for now as it is untested")
-	//icon_filename := _get_asset_icon_filename()
-	//icon_handle, err := systray.NewIconFromFile(icon_filename)
-	//assert(err == nil, "Error loading icon from %s", icon_filename)
-	//assert(false, "balloon notification is not tested yet -- suppressing")
-	//ShowBalloon(win.GetHandle().Swigcptr(), win.toolbar_icon, notification.title, notification.msg, 0, uint32(icon_handle), true)
+	result := wxshowballoon.ShowBalloon(win.toolbar_icon, notification.title, notification.msg, 200, 0, _get_asset_icon())
+	assert(result, "error showing balloon")
 	return nil
-}
-
-/*
-wxWidgets TaskbarIcon implementation on Windows uses the native system notification area icon support, which also supports notifications.
-wxGo doesn't expose a ShowBalloon call, but exposes the events for interacting with the balloon.
-
-The wxWidgets docs for wxTaskBarIcon give a sketch of the C++ required for the ShowBalloon call.
-https://wiki.wxwidgets.org/WxTaskBarIcon
-
-I've pulled in xlip's golang systray implementation just so I can use its definitions of all of the relevant Windows API stuff to implement
-this. (I could use its systray implementation too, except that it would need to own the main thread for its message loop,
-which conflicts with wxWidgets).
- */
-
-const NIF_INFO uint32 = 16
-
-func ShowBalloon(hwnd uintptr, taskbarIcon wx.TaskBarIcon, title string, message string, timeout uint, icon uint32, icon_added bool) bool {
-	var uid uint32 = 0
-	nid := systray.NOTIFYICONDATA{
-		UID: uid,
-		HWnd: systray.HWND(hwnd),
-	}
-	nid.CbSize = uint32(unsafe.Sizeof(nid))
-	nid.UFlags = NIF_INFO
-
-	copy(nid.SzInfo[:], syscall.StringToUTF16(message))
-	copy(nid.SzInfoTitle[:], syscall.StringToUTF16(title))
-
-	nid.DwInfoFlags = icon
-	//notifyData.uTimeout = timeout
-	ret, _, _ := systray.Shell_NotifyIcon.Call(systray.NIM_MODIFY, uintptr(unsafe.Pointer(&nid)))
-	if ret == 0 {
-		return false
-	} else {
-		return true
-	}
 }
 
 func (win *MainStatusWindowImpl) _on_timeout_timer_complete() {
@@ -385,7 +337,6 @@ func (win *MainStatusWindowImpl) _on_toolbar_balloon_click(e wx.Event) {
 func (win *MainStatusWindowImpl) _on_toolbar_balloon_timeout(e wx.Event) {
 	win.main_obj.log("notification timeout")
 	// ok, on to the next
-	// wx.CallAfter(self._dispense_remaining_notifications)
 	win.set_timeout(250 * time.Millisecond, win._dispense_remaining_notifications)
 }
 
@@ -402,7 +353,6 @@ func _get_asset_icon() wx.Icon {
 	the_icon := wx.NullIcon
 	bitmap_path := _get_asset_icon_filename()
 	loaded_bitmap := wx.NewBitmap(bitmap_path, wx.BITMAP_TYPE_ICO)
-	//loaded_bitmap.LoadFile(bitmap_path)
 	the_icon.CopyFromBitmap(loaded_bitmap)
 	return the_icon
 }
@@ -539,7 +489,7 @@ func (app *OurTwitchNotifierMain) _list_for_is_online(online bool) wx.ListBox {
 }
 
 func (app *OurTwitchNotifierMain) stream_state_change(channel_id ChannelID, new_online bool, stream *StreamInfo) {
-	msg("stream state change for %s", channel_id)
+	msg("stream state change for channel %v", uint64(channel_id))
 	val, ok := app.previously_online_streams[channel_id]
 	if ok && val {
 		delete(app.previously_online_streams, channel_id)
@@ -753,6 +703,7 @@ func (callback NotificationCallback) callback() error {
 }
 
 func (app *TwitchNotifierMain) diag_request(parts... string) {
+	/** Do an API call and just pretty print the response contents */
 	url_parts := strings.Join(parts, "/")
 	msg("diag request for %s", url_parts)
 
@@ -806,46 +757,6 @@ func (app *OurTwitchNotifierMain) _notifier_fini() {
 	// pass
 }
 
-//type WorkerInterface struct {
-//	app *OurTwitchNotifierMain
-//	out chan WaitItem
-//	in chan string
-//	pending_logs []string
-//}
-//
-//func (comms *WorkerInterface) log(msg string) {
-//	comms.pending_logs = append(comms.pending_logs, msg)
-//}
-//
-//func (comms *WorkerInterface) yield(item WaitItem) {
-//	comms.out <- item
-//}
-//
-//func (comms *WorkerInterface) wait_next() {
-//	_ := <- comms.in
-//}
-//
-//func (comms *WorkerInterface) next() WaitItem {
-//	// this is the method used from the main thread to get a result
-//	comms.in <- ""
-//	item := <- comms.out
-//	// handle the pending logs
-//	for _, message := range comms.pending_logs {
-//		comms.app.getEventsInterface().log(message)
-//	}
-//	comms.pending_logs = []string{}
-//	return item
-//}
-//
-//func (app *OurTwitchNotifierMain) NewWorkerInterface() *WorkerInterface {
-//	comms := &WorkerInterface{}
-//	comms.app = app
-//	comms.out = make(chan WaitItem)
-//	comms.in = make(chan string)
-//	comms.in <- ""
-//	return comms
-//}
-
 type ChannelWatcher struct {
 	app *OurTwitchNotifierMain
 	channels_followed map[ChannelID]bool
@@ -867,184 +778,167 @@ func (app *OurTwitchNotifierMain) NewChannelWatcher() *ChannelWatcher {
 }
 
 func (watcher *ChannelWatcher) next() WaitItem {
-	//comms := app.NewWorkerInterface()
 
-	//comms.log("Testing a log from the main thread")
+	/* This does one API poll, potentially loading the user's list of followed channels first,
+	   makes the calls to stuff in watcher.app to update followed stream details, and then
+	   returns a token with info about the pause before the next poll so the caller can
+	   sleep and/or schedule the next call
+	 */
 
-	//go func() {
-	//	comms.wait_next()
-
-		//comms.log("Testing a log from the goroutine")
-
-		//channels_followed := make(map[string]bool)
-		//channel_info := make(map[string]ChannelInfo)
-		//last_streams := make(map[string]string)
-		//
-		//channels_followed_names := []string{}
-		//
-		//app._init_notifier()
-		//
-		//app.krakenInstance = InitKraken()
-		//
-		//for {
 	app := watcher.app
-			if app.need_channels_refresh {
+	if app.need_channels_refresh {
 
-				msg("doing a refresh")
-				app.need_channels_refresh = false
-				watcher.channels_followed = make(map[ChannelID]bool)
-				watcher.channel_info = make(map[ChannelID]*ChannelInfo)
-				watcher.last_streams = make(map[ChannelID]StreamID)
-				watcher.channels_followed_names = []string{}
+		msg("doing a refresh")
+		app.need_channels_refresh = false
+		watcher.channels_followed = make(map[ChannelID]bool)
+		watcher.channel_info = make(map[ChannelID]*ChannelInfo)
+		watcher.last_streams = make(map[ChannelID]StreamID)
+		watcher.channels_followed_names = []string{}
 
-				// first time querying
+		// first time querying
 
-				if app._auth_oauth != "" {
-					authorization := "OAuth " + app._auth_oauth
-					app.krakenInstance.addHeader("Authorization", authorization)
+		if app._auth_oauth != "" {
+			authorization := "OAuth " + app._auth_oauth
+			app.krakenInstance.addHeader("Authorization", authorization)
 
-					// FIXME set fast query mode (support for slow query later)
+			// FIXME set fast query mode (support for slow query later)
 
-					if app.options.username == nil || *app.options.username == "" {
-						var root_response struct {
-							Token struct {
-								      User_Name string
-							      }
-						}
-						//app.diag_request()
-						msg("before kraken call for username")
-						err := app.krakenInstance.kraken(&root_response)
-						msg("after kraken call for username")
-						assert(err == nil, "root request error: %s", err)
-						assert(root_response.Token.User_Name != "", "got empty username from root request")
-						app.options.username = &root_response.Token.User_Name
-
-					}
+			if app.options.username == nil || *app.options.username == "" {
+				var root_response struct {
+					Token struct {
+						      User_Name string
+					      }
 				}
-
-				notificationsDisabledFor := []string{}
-
-				// FIXME this will want to change to something that will support the paged query
-
-				// twitch.api.v3.follows.by_user
-				type FollowEntry struct {
-					Channel       *ChannelInfo
-					Notifications bool
-				}
-
-				var follows_by_user_response struct {
-					Follows *[]FollowEntry
-				}
-
-				assert(app.options.username != nil, "username was nil during request")
-				assert(*app.options.username != "", "username was empty during request")
-
-				msg("got username")
-
-				params := url.Values{}
-				params.Add("limit", "25")
-				params.Add("offset", "0")
-
-				msg("before kraken call for follows by user response")
-				err := app.krakenInstance.kraken(&follows_by_user_response,
-					"users", *app.options.username, "follows",
-					"channels?" + params.Encode())
-				msg("after kraken call for follows by user response")
-				assert(err == nil, "follows request error: %s", err)
-				assert(follows_by_user_response.Follows != nil, "follows request did not have a follows list")
-				for _, follow := range *follows_by_user_response.Follows {
-					channel := follow.Channel
-					channel_id := channel.Id
-					channel_name := channel.Display_Name
-					msg("processing channel follow for %s", channel_name)
-					notifications_enabled := follow.Notifications
-					if *app.options.all || notifications_enabled {
-						watcher.channels_followed[channel_id] = true
-						watcher.channels_followed_names = append(watcher.channels_followed_names, channel_name)
-						watcher.channel_info[channel_id] = channel
-					} else {
-						notificationsDisabledFor = append(notificationsDisabledFor, channel_name)
-					}
-				}
-
-				msg("processing followed channels")
-
-				followed_channel_entries := ChannelSlice{}
-
-				for channel_id, present := range watcher.channels_followed {
-					if !present {
-						continue
-					}
-					followed_channel_entries = append(followed_channel_entries, watcher.channel_info[channel_id])
-				}
-
-				msg("sorting")
-
-				sort.Sort(followed_channel_entries)
-
-				msg("init channel display")
-
-				app.getEventsInterface().init_channel_display(followed_channel_entries)
-
-				msg("channels reload complete")
-
-				app.getEventsInterface()._channels_reload_complete()
-			} // done channels refresh
-
-			// regular status change checks time
-			log.Println("STUB: lock and idle check implementation")
-
-			// FIXME just fast query implemented for now
-			channel_stream_iterator := app.get_streams_channels_following(watcher.channels_followed)
-			for channel_id, channel_stream := range channel_stream_iterator {
-				var channel *ChannelInfo = channel_stream.channel
-				var stream *StreamInfo = channel_stream.stream
-				assert(channel != nil, "channel_stream had no channel")
-				channel_name := channel.Display_Name
-
-				stream_we_consider_online := stream != nil && !stream.Is_playlist
-
-				app.getEventsInterface().stream_state_change(channel_id, stream_we_consider_online, stream)
-
-				if stream_we_consider_online {
-					stream_id := stream.Id
-					val, ok := watcher.last_streams[channel_id]
-					msg("stream fetch output: %s, %s", val, ok)
-					if !ok || val != stream_id {
-						msg("before stream notify for %s", channel_name)
-						app.notify_for_stream(channel_name, stream)
-						msg("after stream notify for %s", channel_name)
-					}
-					watcher.last_streams[channel_id] = stream_id
-				} else {
-					msg("channel %s is offline", channel_name)
-					if stream == nil {
-
-						app.getEventsInterface().log(fmt.Sprintf("channel_id %s had stream null", channel_id))
-					} else {
-						app.getEventsInterface().log(fmt.Sprintf("channel_id  %s is_playlist %s", channel_id, stream.Is_playlist))
-					}
-					_, ok := watcher.last_streams[channel_id]
-					if ok {
-						delete(watcher.last_streams, channel_id)
-					}
-				}
+				//app.diag_request()
+				msg("before kraken call for username")
+				err := app.krakenInstance.kraken(&root_response)
+				msg("after kraken call for username")
+				assert(err == nil, "root request error: %s", err)
+				assert(root_response.Token.User_Name != "", "got empty username from root request")
+				app.options.username = &root_response.Token.User_Name
 
 			}
+		}
 
-			app.getEventsInterface().done_state_changes()
+		notificationsDisabledFor := []string{}
 
-			sleep_until_next_poll_s := *app.options.poll
-			if sleep_until_next_poll_s < 60 {
-				sleep_until_next_poll_s = 60
+		// FIXME this will want to change to something that will support the paged query
+
+		// twitch.api.v3.follows.by_user
+		type FollowEntry struct {
+			Channel       *ChannelInfo
+			Notifications bool
+		}
+
+		var follows_by_user_response struct {
+			Follows *[]FollowEntry
+		}
+
+		assert(app.options.username != nil, "username was nil during request")
+		assert(*app.options.username != "", "username was empty during request")
+
+		msg("got username")
+
+		params := url.Values{}
+		params.Add("limit", "25")
+		params.Add("offset", "0")
+
+		msg("before kraken call for follows by user response")
+		err := app.krakenInstance.kraken(&follows_by_user_response,
+			"users", *app.options.username, "follows",
+			"channels?" + params.Encode())
+		msg("after kraken call for follows by user response")
+		assert(err == nil, "follows request error: %s", err)
+		assert(follows_by_user_response.Follows != nil, "follows request did not have a follows list")
+		for _, follow := range *follows_by_user_response.Follows {
+			channel := follow.Channel
+			channel_id := channel.Id
+			channel_name := channel.Display_Name
+			msg("processing channel follow for %s", channel_name)
+			notifications_enabled := follow.Notifications
+			if *app.options.all || notifications_enabled {
+				watcher.channels_followed[channel_id] = true
+				watcher.channels_followed_names = append(watcher.channels_followed_names, channel_name)
+				watcher.channel_info[channel_id] = channel
+			} else {
+				notificationsDisabledFor = append(notificationsDisabledFor, channel_name)
 			}
-			reason := fmt.Sprintf("Waiting %v s for next poll", sleep_until_next_poll_s)
-			//app.getEventsInterface().log(reason)
-			return WaitItem{time.Duration(sleep_until_next_poll_s) * time.Second, reason}
-		//}
-	//}()
+		}
 
-	//return comms
+		msg("processing followed channels")
+
+		followed_channel_entries := ChannelSlice{}
+
+		for channel_id, present := range watcher.channels_followed {
+			if !present {
+				continue
+			}
+			followed_channel_entries = append(followed_channel_entries, watcher.channel_info[channel_id])
+		}
+
+		msg("sorting")
+
+		sort.Sort(followed_channel_entries)
+
+		msg("init channel display")
+
+		app.getEventsInterface().init_channel_display(followed_channel_entries)
+
+		msg("channels reload complete")
+
+		app.getEventsInterface()._channels_reload_complete()
+	} // done channels refresh
+
+	// regular status change checks time
+	log.Println("STUB: lock and idle check implementation")
+
+	// FIXME just fast query implemented for now
+	channel_stream_iterator := app.get_streams_channels_following(watcher.channels_followed)
+	for channel_id, channel_stream := range channel_stream_iterator {
+		var channel *ChannelInfo = channel_stream.channel
+		var stream *StreamInfo = channel_stream.stream
+		assert(channel != nil, "channel_stream had no channel")
+		channel_name := channel.Display_Name
+
+		stream_we_consider_online := stream != nil && !stream.Is_playlist
+
+		app.getEventsInterface().stream_state_change(channel_id, stream_we_consider_online, stream)
+
+		if stream_we_consider_online {
+			stream_id := stream.Id
+			val, ok := watcher.last_streams[channel_id]
+			msg("stream fetch output: %v, %v", uint64(val), ok)
+			if !ok || val != stream_id {
+				msg("before stream notify for %s", channel_name)
+				app.notify_for_stream(channel_name, stream)
+				msg("after stream notify for %s", channel_name)
+			}
+			watcher.last_streams[channel_id] = stream_id
+		} else {
+			msg("channel %s is offline", channel_name)
+			if stream == nil {
+
+				app.getEventsInterface().log(fmt.Sprintf("channel_id %s had stream null", channel_id))
+			} else {
+				app.getEventsInterface().log(fmt.Sprintf("channel_id  %s is_playlist %s", channel_id, stream.Is_playlist))
+			}
+			_, ok := watcher.last_streams[channel_id]
+			if ok {
+				delete(watcher.last_streams, channel_id)
+			}
+		}
+
+	}
+
+	app.getEventsInterface().done_state_changes()
+
+	sleep_until_next_poll_s := *app.options.poll
+	if sleep_until_next_poll_s < 60 {
+		sleep_until_next_poll_s = 60
+	}
+	reason := fmt.Sprintf("Waiting %v s for next poll", sleep_until_next_poll_s)
+	return WaitItem{time.Duration(sleep_until_next_poll_s) * time.Second, reason}
+
 }
 
 type ChannelSlice []*ChannelInfo
@@ -1102,7 +996,7 @@ func (app *OurTwitchNotifierMain) main_loop_main_window_timer() error {
 func (app *OurTwitchNotifierMain) set_next_time() {
 	msg("doing iterator call")
 	next_wait := app.main_loop_iter.next()
-	msg(next_wait.reason)
+	app.log(next_wait.reason)
 	app.window_impl.set_timer_with_callback(next_wait.length, app.set_next_time)
 }
 
@@ -1121,6 +1015,7 @@ func (app *OurTwitchNotifierMain) log(message string) {
 	app.window_impl.list_log.Append(line_item)
 	//msg("after log")
 }
+
 
 func main() {
 	// initialize the handlers for all image formats so that wx.Bitmap routines can load all
