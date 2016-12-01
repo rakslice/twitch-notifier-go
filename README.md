@@ -17,8 +17,9 @@ So the old fashioned way to get up and running is to:
 
 1. Follow the directions at [https://github.com/dontpanic92/wxGo](https://github.com/dontpanic92/wxGo) to get wxGo installed
 2. Download the twitch-notifier-go source
-3. Use the same environment as for wxGo to `go install wxshowballoon`
-4. Use the same environment again to `go build twitchnotifier` 
+3. Fix those include paths
+4. Use the same environment as for wxGo to `go install wxshowballoon`
+5. Use the same environment again to `go build twitchnotifier` 
 
 ## Usage
 
