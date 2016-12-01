@@ -1,5 +1,9 @@
 package main
 
+/**
+This is mostly straight out of https://github.com/Fugiman/kaet/blob/master/kraken.go
+ */
+
 import (
 	"encoding/json"
 	//"fmt"

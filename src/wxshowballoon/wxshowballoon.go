@@ -33,27 +33,29 @@ extern _Bool _wrap_TaskBarIcon_ShowBalloon_wx(uintptr_t taskbar_icon, _gostring_
 import "C"
 
 
-
 func ShowBalloon(p wx.TaskBarIcon, title string, text string, msec uint, flags int, icon wx.Icon) bool {
 
-	// How to deal with different
+	// How to wrap different type parameters:
+
 	// wx.TaskBarIcon
-	// argument SwigcptrTaskBarIcon
-	// param wxTaskBarIcon *_swig_go_0
+	// argument C.uintptr_t(whatever.Swigcptr())
+	// param wxTaskBarIcon *whatever
 	// usage
-	//   goes through a arg1 = *(wxTaskBarIcon **)&_swig_go_0;
+	//   goes through:
+	//     our_whatever = *(wxTaskBarIcon **)&whatever;
 
 	// wx.Icon
-	// argument C.uintptr_t(icon.Swigcptr())
-	// param wxIcon * _swig_go_1
+	// argument C.uintptr_t(whatever.Swigcptr())
+	// param wxIcon * whatever
 	// usage
-	//   goes through a *(wxIcon **)&_swig_go_1
+	//   goes through
+	//     our_whatever = *(wxIcon **)&whatever
 
 	// see SetTooltip for string
-	// argument *(*C.swig_type_32)(unsafe.Pointer(&_swig_i_1))
-	// param _gostring_ _swig_go_2
+	// argument *(*C._gostring_)(unsafe.Pointer(&whatever))
+	// param _gostring_ whatever
 	// usage
-	//   wxString arg3_str(_swig_go_2.p, wxConvUTF8, _swig_go_2.n);
+	//   wxString our_whatever(whatever.p, wxConvUTF8, whatever.n);
 
 	return (bool)(C._wrap_TaskBarIcon_ShowBalloon_wx(C.uintptr_t(p.Swigcptr()),
 		*(*C._gostring_)(unsafe.Pointer(&title)),
