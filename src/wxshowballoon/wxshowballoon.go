@@ -14,6 +14,7 @@ wxGo doesn't expose a ShowBalloon call, but exposes the events for interacting w
 So I've created this additional wrapper for wxTaskbarIcon::ShowBalloon
 */
 
+// NB: Hardcoded paths to wxGo stuff in the CPPFLAGS and LDFLAGS below will need to be manually adjusted.
 
 /*
 #cgo CPPFLAGS: -I${SRCDIR}/../../../twitch-notifier-gopath/src/github.com/dontpanic92/wxGo/wx/windows_amd64/ -I${SRCDIR}/../../../twitch-notifier-gopath/src/github.com/dontpanic92/wxGo/wxWidgets/wxWidgets-3.1.0/include -D_FILE_OFFSET_BITS=64 -D__WXMSW__
