@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"strings"
 	"encoding/json"
-	"net/url"
 	"sort"
 )
 
@@ -554,9 +553,9 @@ func (app *TwitchNotifierMain) channel_display_name(channel *ChannelInfo) string
 
 func (app *OurTwitchNotifierMain) reset_lists() {
 	msg("resetting lists")
-	msg("app %s", app)
-	msg("window_impl %s", app.window_impl)
-	msg("list_online %s", app.window_impl.list_online)
+	//msg("app %s", app)
+	//msg("window_impl %s", app.window_impl)
+	//msg("list_online %s", app.window_impl.list_online)
 	app.window_impl.list_online.Clear()
 	//msg("here we are where we would have cleared lists...")
 	//debug.PrintStack()
@@ -647,7 +646,7 @@ func (app *TwitchNotifierMain) notify_for_stream(channel_name string, stream *St
 	stream_browser_link := stream.Channel.Url
 	game := stream.Game
 
-	msg("got the info")
+	//msg("got the info")
 
 	var show_info string
 	if game == nil {
@@ -658,11 +657,13 @@ func (app *TwitchNotifierMain) notify_for_stream(channel_name string, stream *St
 
 	message := fmt.Sprintf("%s is now live %s(up %s)", channel_name, show_info, time_desc(elapsed_s))
 
-	msg("built the message, events interface is %s", app.getEventsInterface())
+	//msg("built the message, events interface is %s", app.getEventsInterface())
 
 	//app.getEventsInterface().log(fmt.Sprintf("Showing message: '%s'", message))
 
-	msg("going to pass the message to balloon tip obj %s", app.windows_balloon_tip_obj)
+	//msg("going to pass the message to balloon tip obj %s", app.windows_balloon_tip_obj)
+
+	msg("Showing message: '%s'", message)
 
 	callback := NotificationCallback{channel_name, stream_browser_link}
 	if *app.options.popups && app.windows_balloon_tip_obj != nil {
@@ -714,28 +715,22 @@ func (app *TwitchNotifierMain) diag_request(parts... string) {
 func (app *TwitchNotifierMain) get_streams_channels_following(followed_channels map[ChannelID]bool) map[ChannelID]StreamChannel {
 	out := map[ChannelID]StreamChannel{}
 
-	params := url.Values{}
-	params.Add("limit", "25")
-	params.Add("offset", "0")
-	params.Add("stream_type", "live")
+	pager, err := app.krakenInstance.PagedKraken("streams", 25, "streams", "followed")
+	assert(err == nil, "followed request pager failed with %s", err)
 
-	var followed_response struct {
-		Streams *[]StreamInfo
-	}
+	pager.AddParam("stream_type", "live")
 
-	//app.diag_request("streams", "followed?" + params.Encode())
-
-	err := app.krakenInstance.kraken(&followed_response, "streams", "followed?" + params.Encode())
-	assert(err == nil, "followed request failed with %s", err)
-	assert(followed_response.Streams != nil, "followed request did not return a streams list")
-
-	for _, stream := range *followed_response.Streams {
+	for pager.More() {
+		var stream *StreamInfo
+		err = pager.Next(&stream)
+		assert(err == nil, "next return error: %s", err)
+		assert(stream != nil, "stream was nil")
 		channel := stream.Channel
 		assert(channel != nil, "stream has no channel")
 		channel_id := stream.Channel.Id
 		val, ok := followed_channels[channel_id]
 		if val && ok {
-			out[channel_id] = StreamChannel{&stream, channel}
+			out[channel_id] = StreamChannel{stream, channel}
 		} else {
 			app.getEventsInterface().log(fmt.Sprintf("skipping channel %s because it's not a followed channel", app.channel_display_name(stream.Channel)))
 		}
@@ -826,27 +821,25 @@ func (watcher *ChannelWatcher) next() WaitItem {
 			Notifications bool
 		}
 
-		var follows_by_user_response struct {
-			Follows *[]FollowEntry
-		}
-
 		assert(app.options.username != nil, "username was nil during request")
 		assert(*app.options.username != "", "username was empty during request")
 
 		msg("got username")
 
-		params := url.Values{}
-		params.Add("limit", "25")
-		params.Add("offset", "0")
+		msg("before paged kraken call for follows by user response")
+		resultsListKey := "follows"
+		pageSize := uint(25)
 
-		msg("before kraken call for follows by user response")
-		err := app.krakenInstance.kraken(&follows_by_user_response,
+		pager, err := app.krakenInstance.PagedKraken(resultsListKey, pageSize,
 			"users", *app.options.username, "follows",
-			"channels?" + params.Encode())
-		msg("after kraken call for follows by user response")
-		assert(err == nil, "follows request error: %s", err)
-		assert(follows_by_user_response.Follows != nil, "follows request did not have a follows list")
-		for _, follow := range *follows_by_user_response.Follows {
+			"channels")
+		msg("after paged kraken call for follows by user response")
+		assert(err == nil, "follows pager error: %s", err)
+		for pager.More() {
+			var follow FollowEntry
+			err = pager.Next(&follow)
+			assert(err == nil, "follows get error: %s", err)
+
 			channel := follow.Channel
 			channel_id := channel.Id
 			channel_name := channel.Display_Name
@@ -903,15 +896,15 @@ func (watcher *ChannelWatcher) next() WaitItem {
 		if stream_we_consider_online {
 			stream_id := stream.Id
 			val, ok := watcher.last_streams[channel_id]
-			msg("stream fetch output: %v, %v", uint64(val), ok)
+			//msg("stream fetch output: %v, %v", uint64(val), ok)
 			if !ok || val != stream_id {
-				msg("before stream notify for %s", channel_name)
+				//msg("before stream notify for %s", channel_name)
 				app.notify_for_stream(channel_name, stream)
-				msg("after stream notify for %s", channel_name)
+				//msg("after stream notify for %s", channel_name)
 			}
 			watcher.last_streams[channel_id] = stream_id
 		} else {
-			msg("channel %s is offline", channel_name)
+			//msg("channel %s is offline", channel_name)
 			if stream == nil {
 
 				app.getEventsInterface().log(fmt.Sprintf("channel_id %s had stream null", channel_id))

@@ -1,5 +1,6 @@
 # twitch-notifier-go
-A quick golang port of my python twitch notifier for Windows 10
+
+A quick golang port of my python twitch notifier for Windows
 
 ## Install
 
