@@ -142,6 +142,7 @@ func (win *MainStatusWindowImpl) showImageInWxImage(control wx.StaticBitmap, rea
 	io.Copy(tempfile, readCloser)
 	tempfile.Close()
 
+	// Bounce through an event so the GUI interaction happens in the main thread
 	win.set_timeout(0, func() error {
 		msg("Opening image")
 		image := wx.NewImage(tempfileName)
