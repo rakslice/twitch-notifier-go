@@ -213,14 +213,14 @@ func (win *MainStatusWindowImpl) showInfo(channel *ChannelInfo, stream *StreamIn
 
 			win.main_obj.log("Logo loaded")
 			//contentType := rs.Header.Get("Content-type")
-			// TODO verify content type
+			// TODO verify content type corresponds to a supported image format
 
 			win.showImageInWxImage(staticBitmapToSet, rs.Body)
 		})
 	}
 }
 
-// Holds a notification entry that is queue up to go out when in order behind other notifications
+// Holds a notification entry that is queued up to go out order behind any other notifications
 type NotificationQueueEntry struct {
 	callback func() error
 	title string
@@ -229,6 +229,11 @@ type NotificationQueueEntry struct {
 
 // CONCRETE WINDOW DEFINITION AND CONSTRUCTOR
 
+/**
+MainStatusWindowImpl embeds MainStatusWindow, the GUI skeleton that comes from code generation,
+and implements t
+
+ */
 type MainStatusWindowImpl struct {
 	MainStatusWindow
 	app wx.App
@@ -238,7 +243,9 @@ type MainStatusWindowImpl struct {
 	cur_timeout_callback func() error
 	balloon_click_callback func() error
 
+	// notifications waiting to go on the screen behind the currently shown notification
 	notifications_queue []NotificationQueueEntry
+	// whether there is currently a batch of notifications being shown
 	notifications_queue_in_progress bool
 
 	timer *TimerWrapper
@@ -364,13 +371,19 @@ func (helper *WxTimeHelper) on_thread_event(e wx.Event) {
 }
 
 /**
-time.AfterFunc() runs its callback in a goroutine. However we can't interact with wx GUI stuff outside the main thread.
-So here's a wrapper for it that runs the callback in the wx main thread by passing a wx.ThreadingEvent
+This wxGo doesn't have a wx.Timer analogous to the wxPython one.  That may be because go's built-in time.AfterFunc()
+provides similar functionality, running a callback in a goroutine after a delay.
+However wx GUI methods don't support calls outside the main thread.
+So here's an AfterFunc implementation that wraps time.AfterFunc, and ships its callbacks to the wx main thread by
+way of a wx.ThreadingEvent.
+
+This approach is based on the wxGo threadevent example:
+https://github.com/dontpanic92/wxGo/blob/master/examples/src/threadevent/main.go
  */
 func (helper *WxTimeHelper) AfterFunc(duration time.Duration, callback func()) *TimerWrapper {
 	// get a callback num and file the callback
 
-	// TODO wraparound collision safeguard
+	// TODO safeguard against id collision when we wrap around the int space
 	helper.next_callback_num_mutex.Lock()
 	callback_num := helper.next_callback_num
 	helper.next_callback_num += 1
@@ -380,7 +393,7 @@ func (helper *WxTimeHelper) AfterFunc(duration time.Duration, callback func()) *
 	helper.callbacks_map[callback_num] = callback
 	helper.callbacks_map_mutex.Unlock()
 
-	// do real AfterFunc call with a callback that sets up an event to do the wrapper callback
+	// Do the real AfterFunc call with a callback that sets up an event to do the wrapper callback
 
 	//msg("before delay for callback %s", callback_num)
 	timer := time.AfterFunc(duration, func() {
@@ -393,7 +406,8 @@ func (helper *WxTimeHelper) AfterFunc(duration time.Duration, callback func()) *
 }
 
 func (helper *WxTimeHelper) on_call_complete(callback_num int) {
-	// this gets called in a thread other than the wx main thread, so we must only set up some thread events and cannot call into the GUI directly
+	// This method gets called in a thread other than the wx main thread, so it must only set up some thread events and cannot call into the GUI directly
+
 	//msg("timer for callback %s complete", callback_num)
 	threadEvent := wx.NewThreadEvent(wx.EVT_THREAD, helper.wx_event_id)
 	threadEvent.SetInt(callback_num)
@@ -432,7 +446,7 @@ func (win *MainStatusWindowImpl) _timer_internal_callback() {
 	cur_callback()
 }
 
-// EVENT HANDLERS
+// EVENT HANDLERS AND OTHER CONCRETE WINDOW METHODS
 
 func (win *MainStatusWindowImpl) _on_toolbar_icon_left_dclick(e wx.Event) {
 	win.Show()
@@ -455,7 +469,7 @@ func (win *MainStatusWindowImpl) enqueue_notification(title string, msg string, 
 	notification := NotificationQueueEntry{callback.callback, title, msg}
 	win.notifications_queue = append(win.notifications_queue, notification)
 	if !win.notifications_queue_in_progress {
-		// kick off the progress
+		// kick off the notification cycle
 		win._dispense_remaining_notifications()
 	}
 }
@@ -512,6 +526,8 @@ func (win *MainStatusWindowImpl) _on_close(e wx.Event) {
 	win.Hide()
 }
 
+// ICON HELPER FUNCTIONS
+
 func _get_asset_icon_filename() string {
 	subpath := "icon.ico"
 	script_path, err := filepath.Abs(".")
@@ -528,6 +544,8 @@ func _get_asset_icon() wx.Icon {
 	the_icon.CopyFromBitmap(loaded_bitmap)
 	return the_icon
 }
+
+// BASE APP CLASS
 
 type TwitchNotifierMain struct {
 	need_channels_refresh bool
@@ -560,6 +578,7 @@ func msg(format string, a... interface{}) {
 	//wx.MessageBox(message)
 }
 
+// Info about a stream, which is a current live video session happening on a channel
 type StreamInfo struct {
 	Channel     *ChannelInfo
 	Is_playlist bool
@@ -569,6 +588,8 @@ type StreamInfo struct {
 }
 
 const CLIENT_ID = "pkvo0qdzjzxeapwpf8bfogx050n4bn8"
+
+// COMMAND LINE OPTIONS STUFF
 
 type Options struct {
 	username *string
@@ -601,14 +622,18 @@ func parse_args() *Options {
 	return options
 }
 
+// API RESPONSE DATA STRUCTURES
+
 type ChannelID float64
 type StreamID float64
 
+// Info about a channel
 type ChannelInfo struct {
 	Id           ChannelID	`json:"_id"`
 	Display_Name string
 	Url          string
 	Status       string
+	// URL of the channel logo, if any
 	Logo         *string
 }
 
@@ -623,7 +648,7 @@ func (app *TwitchNotifierMain) log(msg string) {
 	}
 }
 
-// This is for "virtual functions" in the headless app class that I want to go through to the GUI version of the app class
+// This is for "virtual functions" in the base app class that should go through the extended app class
 type MainEventsInterface interface {
 	init_channel_display(followed_channel_entries []*ChannelInfo)
 	stream_state_change(channel_id ChannelID, stream_we_consider_online bool, stream *StreamInfo)
@@ -697,6 +722,9 @@ func (app *OurTwitchNotifierMain) _channels_reload_complete() {
 	app.window_impl.setChannelRefreshInProgress(false)
 }
 
+/**
+This is called when a channel has gone online or offline
+ */
 func (app *OurTwitchNotifierMain) stream_state_change(channel_id ChannelID, new_online bool, stream *StreamInfo) {
 	msg("stream state change for channel %v", uint64(channel_id))
 	val, ok := app.previously_online_streams[channel_id]
@@ -755,23 +783,6 @@ func (app *OurTwitchNotifierMain) done_state_changes() {
 	}
 	app.previously_online_streams = make(map[ChannelID]bool)
 }
-
-//type DelayedUrlRequestId uint
-//
-//type DelayedUrlRequest struct {
-//
-//}
-//
-//func (app *OurTwitchNotifierMain) popDelayedUrlRequest(requestId DelayedUrlRequestId) *DelayedUrlRequest {
-//
-//}
-//
-//func (app *OurTwitchNotifierMain) cancelDelayedUrlLoad(requestId DelayedUrlRequestId) {
-//	request := app.popDelayedUrlRequest(requestId)
-//	if request != nil {
-//		request.Body.Close()
-//	}
-//}
 
 // Note that this implementation will run the callback on another thread, so the callback needs to pass control
 // back to the main thread.
@@ -1208,6 +1219,9 @@ type WaitItem struct {
 	reason string
 }
 
+// EXTENDED APP CLASS
+
+// Extends TwitchNotifierMain to provide channel lists and stream info needed for the GUI
 type OurTwitchNotifierMain struct {
 	TwitchNotifierMain
 	window_impl *MainStatusWindowImpl
@@ -1231,8 +1245,10 @@ func InitOurTwitchNotifierMain() *OurTwitchNotifierMain {
 	return out
 }
 
+// EVEN MORE APP METHODS
+
 func (app *OurTwitchNotifierMain) cancelDelayedUrlLoadsForContext(ctx string) {
-	app.log(fmt.Sprintf("STUB: cancelDelayedUrlLoadsForContext('%s') - cancellation of async requests not implemented", ctx))
+	msg("STUB: cancelDelayedUrlLoadsForContext('%s') - cancellation of async requests not implemented", ctx)
 }
 
 func (app *OurTwitchNotifierMain) getChannelAndStreamForListEntry(isOnline bool, index int) (*ChannelInfo, *StreamInfo) {
@@ -1269,6 +1285,8 @@ func (app *OurTwitchNotifierMain) main_loop_main_window_timer() error {
 	return nil
 }
 
+/** Do a poll of the API and set up a timer to get us to the next poll
+ */
 func (app *OurTwitchNotifierMain) set_next_time() {
 	msg("doing iterator call")
 	next_wait := app.main_loop_iter.next()
@@ -1282,6 +1300,7 @@ func (app *OurTwitchNotifierMain) main_loop_main_window_timer_with_auth() {
 	app.set_next_time()
 }
 
+/** Show a message in the normal log that is on-screen in the GUI window */
 func (app *OurTwitchNotifierMain) log(message string) {
 	line_item := fmt.Sprintf("%v: %s", time.Now(), message)
 	msg("In log function, appending: %s", line_item)
