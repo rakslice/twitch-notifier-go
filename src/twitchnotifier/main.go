@@ -275,6 +275,7 @@ func InitMainStatusWindowImpl() *MainStatusWindowImpl {
 	wx.Bind(out.toolbar_icon, wx.EVT_TASKBAR_LEFT_DCLICK, out._on_toolbar_icon_left_dclick, wx.ID_ANY)
 	wx.Bind(out.toolbar_icon, wx.EVT_TASKBAR_BALLOON_CLICK, out._on_toolbar_balloon_click, wx.ID_ANY)
 	wx.Bind(out.toolbar_icon, wx.EVT_TASKBAR_BALLOON_TIMEOUT, out._on_toolbar_balloon_timeout, wx.ID_ANY)
+	wx.Bind(out, wx.EVT_CLOSE_WINDOW, out._on_close, out.GetId())
 
 	twitch_notifier_main := InitOurTwitchNotifierMain()
 	twitch_notifier_main.options = parse_args()
@@ -505,6 +506,10 @@ func (win *MainStatusWindowImpl) _on_toolbar_balloon_timeout(e wx.Event) {
 	win.main_obj.log("notification timeout")
 	// ok, on to the next
 	win.set_timeout(250 * time.Millisecond, win._dispense_remaining_notifications)
+}
+
+func (win *MainStatusWindowImpl) _on_close(e wx.Event) {
+	win.Hide()
 }
 
 func _get_asset_icon_filename() string {
