@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"github.com/dontpanic92/wxGo/wx"
+	"github.com/tomcatzh/asynchttpclient"
 	"flag"
 	"sync"
 	"time"
@@ -14,6 +15,10 @@ import (
 	"strings"
 	"encoding/json"
 	"sort"
+	"net/http"
+	"io"
+	"io/ioutil"
+	"os"
 )
 
 
@@ -25,8 +30,26 @@ func assert(condition bool, message string, a... interface{}) {
 	}
 }
 
+// CONCRETE WINDOW METHODS
+
+func (win *MainStatusWindowImpl) _on_list_gen(e wx.Event, wasOnlineList bool) {
+	commandEvent := wx.ToCommandEvent(e)
+	//assert(ok, "list gen called with an event that wasn't CommandEvent: %s", e)
+	idx := commandEvent.GetInt()
+	if idx >= 0 {
+		otherList := win.main_obj._list_for_is_online(!wasOnlineList)
+		//otherList.Deselect()
+		otherList.SetSelection(-1)
+		channel, stream := win.main_obj.getChannelAndStreamForListEntry(wasOnlineList, idx)
+		win.showInfo(channel, stream)
+	} else {
+		win.clearInfo()
+	}
+}
+
 func (win *MainStatusWindowImpl) _on_list_online_gen(e wx.Event) {
-	win.main_obj.log("_on_list_online_gen")
+	//win.main_obj.log("_on_list_online_gen")
+	win._on_list_gen(e, true)
 }
 
 func (win *MainStatusWindowImpl) _on_list_online_dclick(e wx.Event) {
@@ -34,7 +57,8 @@ func (win *MainStatusWindowImpl) _on_list_online_dclick(e wx.Event) {
 }
 
 func (win *MainStatusWindowImpl) _on_list_offline_gen(e wx.Event) {
-	win.main_obj.log("_on_list_offline_gen")
+	//win.main_obj.log("_on_list_offline_gen")
+	win._on_list_gen(e, false)
 }
 
 func (win *MainStatusWindowImpl) _on_list_offline_dclick(e wx.Event) {
@@ -46,7 +70,15 @@ func (win *MainStatusWindowImpl) _on_options_button_click(e wx.Event) {
 }
 
 func (win *MainStatusWindowImpl) _on_button_reload_channels_click(e wx.Event) {
-	win.main_obj.log("_on_button_reload_channels_click")
+	win.main_obj.doChannelsReload()
+}
+
+func (win *MainStatusWindowImpl) setChannelRefreshInProgress(value bool) {
+	if value {
+		win.button_reload_channels.Disable()
+	} else {
+		win.button_reload_channels.Enable()
+	}
 }
 
 func (win *MainStatusWindowImpl) _on_button_quit(e wx.Event) {
@@ -59,11 +91,140 @@ func (win *MainStatusWindowImpl) _on_button_quit(e wx.Event) {
 	win.app = nil
 }
 
+func (win *MainStatusWindowImpl) setStreamInfo(stream *StreamInfo) {
+	for _, label := range []wx.StaticText {win.label_head_game, win.label_head_started, win.label_head_up} {
+		label.Show()
+		label.Refresh()
+	}
+
+	game := stream.Game
+	if game != nil {
+		win.label_game.SetLabel(*game)
+	} else {
+		win.label_game.SetLabel("")
+	}
+
+	createdAtStr := stream.Created_at
+	win.label_start_time.SetLabel(createdAtStr)
+	startTime, err := convert_iso_time(createdAtStr)
+	if (err != nil) {
+		win.main_obj.log(fmt.Sprintf("Error parsing time '%s': %s", createdAtStr, err))
+		win.label_uptime.SetLabel("")
+	} else {
+		win.label_uptime.SetLabel(time_desc(time.Now().Sub(startTime)))
+	}
+}
+
+func (win *MainStatusWindowImpl) clearStreamInfo() {
+	for _, variableLabel := range []wx.StaticText {win.label_game, win.label_uptime, win.label_start_time} {
+		variableLabel.SetLabel("")
+	}
+
+	for _, fixedLabel := range []wx.StaticText {win.label_head_game, win.label_head_started, win.label_head_up} {
+		fixedLabel.Hide()
+	}
+}
+
+func (win *MainStatusWindowImpl) clearInfo() {
+	win.clearStreamInfo()
+}
+
+func (win *MainStatusWindowImpl) showImageInWxImage(control wx.StaticBitmap, readCloser io.ReadCloser) {
+	// copy the file to a tempfile
+
+	tempfile, err := ioutil.TempFile(os.TempDir(), "")
+	assert(err == nil, "Error creating temp file: %s", err)
+
+	tempfileName := tempfile.Name()
+
+	msg("Saving image to %s", tempfileName)
+
+	io.Copy(tempfile, readCloser)
+	tempfile.Close()
+
+	win.set_timeout(0, func() error {
+		msg("Opening image")
+		image := wx.NewImage(tempfileName)
+		msg("Deleting temp file %s", tempfileName)
+		os.Remove(tempfileName)
+
+		height := control.GetMinHeight()
+		width := control.GetMinWidth()
+		if width > 0 && height > 0 {
+			msg("Scaling image to %vx%v", width, height)
+			image = image.Scale(width, height)
+		}
+		msg("Displaying")
+		bitmap := wx.NewBitmap(image)
+		control.SetBitmap(bitmap)
+		return nil
+	})
+}
+
+func (win *MainStatusWindowImpl) emptyBitmap(size wx.Size, colour wx.Colour) wx.Bitmap {
+	bmp := wx.NewBitmap(size)
+	dc := wx.NewMemoryDC(bmp)
+	dc.SetBackground(wx.NewBrush(colour))
+	dc.Clear()
+	return bmp
+}
+
+func (win *MainStatusWindowImpl) clearLogo() {
+	win.bitmap_channel_logo.SetBitmap(win.emptyBitmap(win.bitmap_channel_logo.GetSize(), win.GetBackgroundColour()))
+}
+
+func (win *MainStatusWindowImpl) showInfo(channel *ChannelInfo, stream *StreamInfo) {
+	if channel == nil {
+		win.label_channel_status.SetLabel("")
+	} else {
+		win.label_channel_status.SetLabel(channel.Status)
+	}
+
+	if stream != nil  {
+		win.setStreamInfo(stream)
+	} else {
+		win.clearStreamInfo()
+	}
+
+	win.main_obj.cancelDelayedUrlLoadsForContext("channel")
+
+	// set the logo to our default image pending the load of the channel image
+	win.clearLogo()
+
+	logoUrl := channel.Logo
+	if logoUrl != nil && *logoUrl != "" {
+
+		staticBitmapToSet := win.bitmap_channel_logo
+
+		win.main_obj.log(fmt.Sprintf("Showing logo %s", *logoUrl))
+		win.main_obj.doDelayedUrlLoad("channel", *logoUrl, func(rs *http.Response) {
+			if rs == nil {
+				return
+			}
+			defer rs.Body.Close()
+
+			if rs.StatusCode != 200 {
+				win.main_obj.log(fmt.Sprintf("Got HTTP error %v %s retrieving %s", rs.StatusCode, rs.Status, *logoUrl))
+				return
+			}
+
+			win.main_obj.log("Logo loaded")
+			//contentType := rs.Header.Get("Content-type")
+			// TODO verify content type
+
+			win.showImageInWxImage(staticBitmapToSet, rs.Body)
+		})
+	}
+}
+
+// Holds a notification entry that is queue up to go out when in order behind other notifications
 type NotificationQueueEntry struct {
 	callback func() error
 	title string
 	msg string
 }
+
+// CONCRETE WINDOW DEFINITION AND CONSTRUCTOR
 
 type MainStatusWindowImpl struct {
 	MainStatusWindow
@@ -105,6 +266,8 @@ func InitMainStatusWindowImpl() *MainStatusWindowImpl {
 	the_icon := _get_asset_icon()
 	out.toolbar_icon.SetIcon(the_icon)
 
+	out.clearLogo()
+
 	// last param should be a specific object id if we have one e.g. out.toolbar_icon.GetId()?
 	wx.Bind(out.toolbar_icon, wx.EVT_TASKBAR_LEFT_DCLICK, out._on_toolbar_icon_left_dclick, wx.ID_ANY)
 	wx.Bind(out.toolbar_icon, wx.EVT_TASKBAR_BALLOON_CLICK, out._on_toolbar_balloon_click, wx.ID_ANY)
@@ -125,6 +288,8 @@ func InitMainStatusWindowImpl() *MainStatusWindowImpl {
 	}
 	return out
 }
+
+// TIME HELPER STUFF
 
 type WxTimeHelper struct {
 	hostFrame               wx.Frame
@@ -231,6 +396,8 @@ func (helper *WxTimeHelper) on_call_complete(callback_num int) {
 	helper.hostFrame.QueueEvent(threadEvent)
 }
 
+// TIME RELATED STUFF IN GUI FRAME
+
 func (win *MainStatusWindowImpl) set_timer_with_callback(length time.Duration, callback func()) {
 	assert(win.timer == nil, "there is already a win.timer")
 	assert(win.timer_callback == nil, "there is already a win.timer_callback")
@@ -260,6 +427,8 @@ func (win *MainStatusWindowImpl) _timer_internal_callback() {
 	win.timer_callback = nil
 	cur_callback()
 }
+
+// EVENT HANDLERS
 
 func (win *MainStatusWindowImpl) _on_toolbar_icon_left_dclick(e wx.Event) {
 	win.Show()
@@ -403,7 +572,7 @@ type Options struct {
 	debug_output *bool
 	authorization_oauth *string
 	ui *bool
-	popups *bool
+	no_popups *bool
 	help *bool
 }
 
@@ -418,7 +587,7 @@ func parse_args() *Options {
 	options.debug_output = flag.Bool("debug", false, "Debug mode")
 	options.authorization_oauth = flag.String("auth-oauth", "", "Authorization OAuth header value to send")
 	options.ui = flag.Bool("ui", false, "Use the wxpython UI")
-	options.popups = flag.Bool("no-popups", true, "Don't do popups, for when using just the UI")
+	options.no_popups = flag.Bool("no-popups", false, "Don't do popups, for when using just the UI")
 	options.help = flag.Bool("help", false, "Show usage")
 	flag.Parse()
 	return options
@@ -431,6 +600,8 @@ type ChannelInfo struct {
 	Id           ChannelID	`json:"_id"`
 	Display_Name string
 	Url          string
+	Status       string
+	Logo         *string
 }
 
 type StreamChannel struct {
@@ -444,6 +615,7 @@ func (app *TwitchNotifierMain) log(msg string) {
 	}
 }
 
+// This is for "virtual functions" in the headless app class that I want to go through to the GUI version of the app class
 type MainEventsInterface interface {
 	init_channel_display(followed_channel_entries []*ChannelInfo)
 	stream_state_change(channel_id ChannelID, stream_we_consider_online bool, stream *StreamInfo)
@@ -453,8 +625,10 @@ type MainEventsInterface interface {
 	log(msg string)
 }
 
-func (app *TwitchNotifierMain) init_channel_display(followed_channel_entries []*ChannelInfo) {
+// MORE APP METHODS
 
+func (app *TwitchNotifierMain) init_channel_display(followed_channel_entries []*ChannelInfo) {
+	// pass
 }
 
 func (app *OurTwitchNotifierMain) init_channel_display(followed_channel_entries []*ChannelInfo) {
@@ -481,6 +655,19 @@ func (app *OurTwitchNotifierMain) _list_for_is_online(online bool) wx.ListBox {
 	} else {
 		return app.window_impl.list_offline
 	}
+}
+
+func (app *OurTwitchNotifierMain) doChannelsReload() {
+	app.need_channels_refresh = true
+	app.window_impl.setChannelRefreshInProgress(true)
+
+	// If there is a main loop timer wait in progress we want to cancel it and do the next main
+	// loop iteration right away
+	app.window_impl.cancel_timer_callback_immediate()
+}
+
+func (app *OurTwitchNotifierMain) _channels_reload_complete() {
+	app.window_impl.setChannelRefreshInProgress(false)
 }
 
 func (app *OurTwitchNotifierMain) stream_state_change(channel_id ChannelID, new_online bool, stream *StreamInfo) {
@@ -540,6 +727,36 @@ func (app *OurTwitchNotifierMain) done_state_changes() {
 		}
 	}
 	app.previously_online_streams = make(map[ChannelID]bool)
+}
+
+//type DelayedUrlRequestId uint
+//
+//type DelayedUrlRequest struct {
+//
+//}
+//
+//func (app *OurTwitchNotifierMain) popDelayedUrlRequest(requestId DelayedUrlRequestId) *DelayedUrlRequest {
+//
+//}
+//
+//func (app *OurTwitchNotifierMain) cancelDelayedUrlLoad(requestId DelayedUrlRequestId) {
+//	request := app.popDelayedUrlRequest(requestId)
+//	if request != nil {
+//		request.Body.Close()
+//	}
+//}
+
+// Note that this implementation will run the callback on another thread, so the callback needs to pass control
+// back to the main thread.
+func (app *OurTwitchNotifierMain) doDelayedUrlLoad(ctx string, url string, callback func(*http.Response)) {
+	app.asynchttpclient.Get(url, func(err error, response *http.Response) {
+		if err != nil {
+			msg("error requesting %s: %s", url, err)
+			callback(nil)
+		} else {
+			callback(response)
+		}
+	})
 }
 
 type ChannelStatus struct {
@@ -666,7 +883,14 @@ func (app *TwitchNotifierMain) notify_for_stream(channel_name string, stream *St
 	msg("Showing message: '%s'", message)
 
 	callback := NotificationCallback{channel_name, stream_browser_link}
-	if *app.options.popups && app.windows_balloon_tip_obj != nil {
+
+
+	popupsEnabled := true
+	if (app.options.no_popups != nil) {
+		popupsEnabled = !*app.options.no_popups
+	}
+
+	if popupsEnabled && app.windows_balloon_tip_obj != nil {
 		app.windows_balloon_tip_obj.balloon_tip("twitch-notifier", message, callback)
 	}
 }
@@ -961,6 +1185,7 @@ type OurTwitchNotifierMain struct {
 	channel_status_by_id map[ChannelID]*ChannelStatus
 	previously_online_streams map[ChannelID]bool
 	stream_by_channel_id map[ChannelID]*StreamInfo
+	asynchttpclient *asynchttpclient.Client
 }
 
 func InitOurTwitchNotifierMain() *OurTwitchNotifierMain {
@@ -970,7 +1195,38 @@ func InitOurTwitchNotifierMain() *OurTwitchNotifierMain {
 	out.channel_status_by_id = make(map[ChannelID]*ChannelStatus)
 	out.previously_online_streams = make(map[ChannelID]bool)
 	out.stream_by_channel_id = make(map[ChannelID]*StreamInfo)
+	out.asynchttpclient = &asynchttpclient.Client{}
+	out.asynchttpclient.Concurrency = 3
 	return out
+}
+
+func (app *OurTwitchNotifierMain) cancelDelayedUrlLoadsForContext(ctx string) {
+	app.log(fmt.Sprintf("STUB: cancelDelayedUrlLoadsForContext('%s') - cancellation of async requests not implemented", ctx))
+}
+
+func (app *OurTwitchNotifierMain) getChannelAndStreamForListEntry(isOnline bool, index int) (*ChannelInfo, *StreamInfo) {
+	var stream *StreamInfo = nil
+	var channel *ChannelInfo = nil
+
+	channelId := app.getChannelIdForListEntry(isOnline, index)
+	if channelId != nil {
+		stream = app.stream_by_channel_id[*channelId]
+		channel = app._channel_for_id(*channelId)
+		if channel == nil {
+			app.log(fmt.Sprintf("Channel entry not found for id %v", channelId))
+		}
+	}
+
+	return channel, stream
+}
+
+func (app *OurTwitchNotifierMain) getChannelIdForListEntry(isOnline bool, index int) *ChannelID {
+	for channelId, curStatus := range app.channel_status_by_id {
+		if curStatus.idx == uint(index) && curStatus.online == isOnline {
+			return &channelId
+		}
+	}
+	return nil
 }
 
 func (app *OurTwitchNotifierMain) main_loop_main_window_timer() error {
