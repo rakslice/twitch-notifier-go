@@ -1135,6 +1135,7 @@ func (watcher *ChannelWatcher) next() WaitItem {
 	log.Println("STUB: lock and idle check implementation")
 
 	// FIXME just fast query implemented for now
+	app.assume_all_streams_offline()
 	channel_stream_iterator := app.get_streams_channels_following(watcher.channels_followed)
 	for channel_id, channel_stream := range channel_stream_iterator {
 		var channel *ChannelInfo = channel_stream.channel

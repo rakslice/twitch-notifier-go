@@ -59,6 +59,27 @@ func (state *KrakenPager) More() bool {
 	return !state.endOfResults
 }
 
+func (state *KrakenPager) finishPagePostList() {
+
+	if !state.gotResponseTotalFieldValue {
+		// still need to know the total number of items on the page
+
+		dec := state.currentPageDecoder
+
+		// eat the array end
+		arrayEnd, arrayEndTokenErr := dec.Token()
+		state.assertWithCleanup(arrayEndTokenErr == nil, "json array start token error: %s", arrayEndTokenErr)
+		arrayEndDelim, wasDelim := arrayEnd.(json.Delim)
+		state.assertWithCleanup(wasDelim, "json array end token was not a delim, was %s in %s", arrayEnd, state.path)
+		state.assertWithCleanup(arrayEndDelim == ']', "value for %s was not an array, was %s in %s",
+			state.resultsListKey, arrayEndDelim, state.path)
+
+		state.seekToResultsListArrayOrEnd()
+	}
+
+	assert(state.gotResponseTotalFieldValue, "didn't get a _total value in page")
+}
+
 // This deserializes the next list item into val, with the same behavior as json.Unmarshal.
 // New pages will be requested as necessary, so this may block until a request completes.
 func (state *KrakenPager) Next(val interface{}) error {
@@ -83,21 +104,8 @@ func (state *KrakenPager) Next(val interface{}) error {
 	if !dec.More() {
 		// we are at the end of the array for this page
 
-		if !state.gotResponseTotalFieldValue {
-			// still need to know the total number of items on the page
+		state.finishPagePostList()
 
-			// eat the array end
-			arrayEnd, arrayEndTokenErr := dec.Token()
-			state.assertWithCleanup(arrayEndTokenErr == nil, "json array start token error: %s", arrayEndTokenErr)
-			arrayEndDelim, wasDelim := arrayEnd.(json.Delim)
-			state.assertWithCleanup(wasDelim, "json array end token was not a delim, was %s in %s", arrayEnd, state.path)
-			state.assertWithCleanup(arrayEndDelim == ']', "value for %s was not an array, was %s in %s",
-				state.resultsListKey, arrayEndDelim, state.path)
-
-			state.seekToResultsListArrayOrEnd()
-		}
-
-		assert(state.gotResponseTotalFieldValue, "didn't get a _total value in page")
 		totalNumItems := state.responseTotalFieldValue
 
 		state.cleanupPage()
@@ -223,7 +231,7 @@ func (state *KrakenPager) loadPage() error {
 //
 // Use this with APIs that take offset and limit GET parameters and
 // respond with a JSON object that has a _total field and an arbitrarily-named field with an
-// array with a non-zero number of items.
+// array with a non-zero number of items (unless _total is 0).
 //
 //    err, iter := PagedKraken("array_field_name", 25, "some", "path", "parts", "go", "here")
 //    if err != nil {
@@ -247,6 +255,15 @@ func (obj *Kraken) PagedKraken(resultsListKey string, pageSize uint, path ...str
 		// there was a problem
 		return nil, err
 	} else {
+		if !out.currentPageDecoder.More() {
+			// page is empty, verify that total was empty and finish off
+			out.finishPagePostList()
+			totalNumItems := out.responseTotalFieldValue
+			out.cleanupPage()
+			assert(totalNumItems == 0, "got empty first page but _total was non-zero")
+			out.endOfResults = true
+		}
+
 		// all good
 		return out, nil
 	}
@@ -257,6 +274,7 @@ func (obj *Kraken) doAPIRequest(params *url.Values, path []string) (*http.Respon
 	if params != nil {
 		curUrl += "?" + params.Encode()
 	}
+	msg("GET %s", curUrl)
 	req, err := http.NewRequest("GET", curUrl, nil)
 	if err != nil {
 		return nil, err
