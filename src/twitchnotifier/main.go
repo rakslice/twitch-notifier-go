@@ -53,7 +53,8 @@ func (win *MainStatusWindowImpl) _on_list_online_gen(e wx.Event) {
 }
 
 func (win *MainStatusWindowImpl) _on_list_online_dclick(e wx.Event) {
-	win.main_obj.log("_on_list_online_dclick")
+	//win.main_obj.log("_on_list_online_dclick")
+	win.main_obj.openSiteForListEntry(true, e)
 }
 
 func (win *MainStatusWindowImpl) _on_list_offline_gen(e wx.Event) {
@@ -62,7 +63,8 @@ func (win *MainStatusWindowImpl) _on_list_offline_gen(e wx.Event) {
 }
 
 func (win *MainStatusWindowImpl) _on_list_offline_dclick(e wx.Event) {
-	win.main_obj.log("_on_list_offline_dclick")
+	//win.main_obj.log("_on_list_offline_dclick")
+	win.main_obj.openSiteForListEntry(false, e)
 }
 
 func (win *MainStatusWindowImpl) _on_options_button_click(e wx.Event) {
@@ -665,6 +667,25 @@ func (app *OurTwitchNotifierMain) doChannelsReload() {
 	// If there is a main loop timer wait in progress we want to cancel it and do the next main
 	// loop iteration right away
 	app.window_impl.cancel_timer_callback_immediate()
+}
+
+func (app *OurTwitchNotifierMain) openSiteForListEntry(isOnline bool, e wx.Event) {
+	commandEvent := wx.ToCommandEvent(e)
+
+	index := commandEvent.GetInt()
+	channel, stream := app.getChannelAndStreamForListEntry(isOnline, index)
+
+	var url string
+	if stream != nil {
+		url = stream.Channel.Url
+	} else if channel != nil {
+		url = channel.Url
+	} else {
+		app.log("Channel is none somehow")
+		return
+	}
+
+	webbrowser_open(url)
 }
 
 func (app *OurTwitchNotifierMain) _channels_reload_complete() {
