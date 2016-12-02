@@ -104,7 +104,7 @@ func (win *MainStatusWindowImpl) setStreamInfo(stream *StreamInfo) {
 
 	createdAtStr := stream.Created_at
 	win.label_start_time.SetLabel(createdAtStr)
-	startTime, err := convert_iso_time(createdAtStr)
+	startTime, err := convert_rfc3339_time(createdAtStr)
 	if (err != nil) {
 		win.main_obj.log(fmt.Sprintf("Error parsing time '%s': %s", createdAtStr, err))
 		win.label_uptime.SetLabel("")
@@ -872,10 +872,9 @@ func webbrowser_open(url string) error {
 	return exec.Command(cmd, args...).Start()
 }
 
-// Convert ISO 8601 combined date and time in UTC string to time.Time
-func convert_iso_time(iso_time string) (time.Time, error) {
-	layout := "2006-01-02T15:04:05Z"
-	t, err := time.Parse(layout, iso_time)
+// Convert RFC3339 combined date and time with tz to time.Time
+func convert_rfc3339_time(rfc3339_time string) (time.Time, error) {
+	t, err := time.Parse(time.RFC3339, rfc3339_time)
 
 	return t, err
 }
@@ -892,7 +891,7 @@ func time_desc(elapsed time.Duration) string {
 // Create a notification for the given stream
 func (app *TwitchNotifierMain) notify_for_stream(channel_name string, stream *StreamInfo) {
 	created_at := stream.Created_at
-	start_time, err := convert_iso_time(created_at)
+	start_time, err := convert_rfc3339_time(created_at)
 	assert(err == nil, "Error converting time %s", created_at)
 	elapsed_s := time.Now().Round(time.Second).Sub(start_time.Round(time.Second))
 
