@@ -141,7 +141,7 @@ func (win *MainStatusWindowImpl) showImageInWxImage(control wx.StaticBitmap, rea
 	tempfile.Close()
 
 	// Bounce through an event so the GUI interaction happens in the main thread
-	win.set_timeout(0, func() error {
+	win.timeHelper.AfterFunc(0, func() {
 		msg("Opening image")
 		image := wx.NewImage(tempfileName)
 		msg("Deleting temp file %s", tempfileName)
@@ -156,7 +156,6 @@ func (win *MainStatusWindowImpl) showImageInWxImage(control wx.StaticBitmap, rea
 		msg("Displaying")
 		bitmap := wx.NewBitmap(image)
 		control.SetBitmap(bitmap)
-		return nil
 	})
 }
 
@@ -237,8 +236,6 @@ type MainStatusWindowImpl struct {
 	app wx.App
 	main_obj *OurTwitchNotifierMain
 	toolbar_icon wx.TaskBarIcon
-	cur_timeout_timer *TimerWrapper
-	cur_timeout_callback func() error
 	balloon_click_callback func() error
 
 	// notifications waiting to go on the screen behind the currently shown notification
@@ -261,8 +258,6 @@ func InitMainStatusWindowImpl() *MainStatusWindowImpl {
 	out.timer = nil
 	out.timer_callback = nil
 
-	out.cur_timeout_timer = nil
-	out.cur_timeout_callback = nil
 	out.balloon_click_callback = nil
 	out.app = nil
 
@@ -451,12 +446,8 @@ func (win *MainStatusWindowImpl) _on_toolbar_icon_left_dclick(e wx.Event) {
 	win.Raise()
 }
 
-func (win *MainStatusWindowImpl) set_timeout(length time.Duration, callback func() error) {
-	assert(win.cur_timeout_timer == nil, "timer already in progress")
-	win.cur_timeout_callback = callback
-	//msg("before set_timeout AfterFunc")
-	win.cur_timeout_timer = win.timeHelper.AfterFunc(length, win._on_timeout_timer_complete)
-	//msg("after set_timeout AfterFunc")
+func (win *MainStatusWindowImpl) set_timeout(length time.Duration, callback func()) {
+	win.timeHelper.AfterFunc(length, callback)
 }
 
 func (win *MainStatusWindowImpl) set_balloon_click_callback(callback func() error) {
@@ -472,11 +463,11 @@ func (win *MainStatusWindowImpl) enqueue_notification(title string, msg string, 
 	}
 }
 
-func (win *MainStatusWindowImpl) _dispense_remaining_notifications() error {
+func (win *MainStatusWindowImpl) _dispense_remaining_notifications() {
 	// hack to avoid double-triggering of events that happens
 	if len(win.notifications_queue) == 0 {
 		win.notifications_queue_in_progress = false
-		return nil
+		return
 	}
 
 	win.notifications_queue_in_progress = true
@@ -490,17 +481,6 @@ func (win *MainStatusWindowImpl) _dispense_remaining_notifications() error {
 	var flags int = 0
 	result := win.toolbar_icon.ShowBalloon(notification.title, notification.msg, delay_ms, flags, _get_asset_icon())
 	assert(result, "error showing balloon")
-	return nil
-}
-
-func (win *MainStatusWindowImpl) _on_timeout_timer_complete() {
-	win.cur_timeout_timer = nil
-	callback := win.cur_timeout_callback
-	win.cur_timeout_callback = nil
-	err := callback()
-	if err != nil {
-		win.main_obj.log(fmt.Sprintf("set_timeout callback returned error: %s", err))
-	}
 }
 
 func (win *MainStatusWindowImpl) _on_toolbar_balloon_click(e wx.Event) {
@@ -1263,13 +1243,12 @@ func (app *OurTwitchNotifierMain) getChannelIdForListEntry(isOnline bool, index 
 	return nil
 }
 
-func (app *OurTwitchNotifierMain) main_loop_main_window_timer() error {
+func (app *OurTwitchNotifierMain) main_loop_main_window_timer() {
 	if app.need_browser_auth() {
 		assert(false, "need browser auth")
 	} else {
 		app.main_loop_main_window_timer_with_auth()
 	}
-	return nil
 }
 
 /** Do a poll of the API and set up a timer to get us to the next poll
