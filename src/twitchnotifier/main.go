@@ -877,8 +877,12 @@ func convert_iso_time(iso_time string) (time.Time, error) {
 	return t, err
 }
 
-func time_desc(elapsed_s time.Duration) string {
-	return elapsed_s.String()
+func time_desc(elapsed time.Duration) string {
+	if elapsed.Hours() >= 1 {
+		return fmt.Sprintf("%d h %02d m", elapsed / time.Hour, (elapsed / time.Minute) % 60)
+	} else {
+		return fmt.Sprintf("%d min", elapsed / time.Minute)
+	}
 }
 
 func (app *TwitchNotifierMain) notify_for_stream(channel_name string, stream *StreamInfo) {
