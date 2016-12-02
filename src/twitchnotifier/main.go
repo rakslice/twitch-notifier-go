@@ -34,11 +34,11 @@ func assert(condition bool, message string, a... interface{}) {
 
 func (win *MainStatusWindowImpl) _on_list_gen(e wx.Event, wasOnlineList bool) {
 	commandEvent := wx.ToCommandEvent(e)
-	//assert(ok, "list gen called with an event that wasn't CommandEvent: %s", e)
+
 	idx := commandEvent.GetInt()
 	if idx >= 0 {
 		otherList := win.main_obj._list_for_is_online(!wasOnlineList)
-		//otherList.Deselect()
+
 		otherList.SetSelection(-1)
 		channel, stream := win.main_obj.getChannelAndStreamForListEntry(wasOnlineList, idx)
 		win.showInfo(channel, stream)
@@ -48,22 +48,18 @@ func (win *MainStatusWindowImpl) _on_list_gen(e wx.Event, wasOnlineList bool) {
 }
 
 func (win *MainStatusWindowImpl) _on_list_online_gen(e wx.Event) {
-	//win.main_obj.log("_on_list_online_gen")
 	win._on_list_gen(e, true)
 }
 
 func (win *MainStatusWindowImpl) _on_list_online_dclick(e wx.Event) {
-	//win.main_obj.log("_on_list_online_dclick")
 	win.main_obj.openSiteForListEntry(true, e)
 }
 
 func (win *MainStatusWindowImpl) _on_list_offline_gen(e wx.Event) {
-	//win.main_obj.log("_on_list_offline_gen")
 	win._on_list_gen(e, false)
 }
 
 func (win *MainStatusWindowImpl) _on_list_offline_dclick(e wx.Event) {
-	//win.main_obj.log("_on_list_offline_dclick")
 	win.main_obj.openSiteForListEntry(false, e)
 }
 
@@ -220,7 +216,9 @@ func (win *MainStatusWindowImpl) showInfo(channel *ChannelInfo, stream *StreamIn
 	}
 }
 
-// Holds a notification entry that is queued up to go out order behind any other notifications
+// Holds a notification entry that is queued up to go out order behind any other notifications.
+// This is intended to be used if the underlying desktop notification system doesn't have its
+// own notification queue.
 type NotificationQueueEntry struct {
 	callback func() error
 	title string
@@ -316,16 +314,16 @@ var next_wx_event_id int = wx.ID_HIGHEST + 1
 func NewWxTimeHelper(hostFrame wx.Frame) *WxTimeHelper {
 	out := &WxTimeHelper{}
 
-	// init things in the struct
 	out.next_callback_num_mutex = &sync.Mutex{}
 	out.callbacks_map_mutex = &sync.Mutex{}
 	out.callbacks_map = make(map[int]func())
+	// get an event id for this particular WxTimeHelper
 	out.wx_event_id = next_wx_event_id
 	next_wx_event_id += 1
 	out.hostFrame = hostFrame
 	out.next_callback_num = 1
 
-	// set up an event handler on the host frame that we will use to bring execution into
+	// Set up an event handler on the host frame that we will use to bring execution into
 	// the GUI thread
 	wx.Bind(out.hostFrame, wx.EVT_THREAD, out.on_thread_event, out.wx_event_id)
 
@@ -808,17 +806,9 @@ func (app *TwitchNotifierMain) channel_display_name(channel *ChannelInfo) string
 
 func (app *OurTwitchNotifierMain) reset_lists() {
 	msg("resetting lists")
-	//msg("app %s", app)
-	//msg("window_impl %s", app.window_impl)
-	//msg("list_online %s", app.window_impl.list_online)
 	app.window_impl.list_online.Clear()
-	//msg("here we are where we would have cleared lists...")
-	//debug.PrintStack()
-	msg("online clear")
 	app.window_impl.list_offline.Clear()
-	msg("offline clear")
 	app.channel_status_by_id = make(map[ChannelID]*ChannelStatus)
-	msg("done list clears")
 
 	for i, channel := range app.followed_channel_entries {
 		app.window_impl.list_offline.Append(app.channel_display_name(channel))
@@ -862,6 +852,7 @@ func (app *TwitchNotifierMain) getEventsInterface() MainEventsInterface {
 	}
 }
 
+// Open a URL in the default browser
 func webbrowser_open(url string) error {
 	// Based on https://stackoverflow.com/questions/39320371/how-start-web-server-to-open-page-in-browser-in-golang
 
@@ -881,6 +872,7 @@ func webbrowser_open(url string) error {
 	return exec.Command(cmd, args...).Start()
 }
 
+// Convert ISO 8601 combined date and time in UTC string to time.Time
 func convert_iso_time(iso_time string) (time.Time, error) {
 	layout := "2006-01-02T15:04:05Z"
 	t, err := time.Parse(layout, iso_time)
@@ -888,6 +880,7 @@ func convert_iso_time(iso_time string) (time.Time, error) {
 	return t, err
 }
 
+// Convert time.Duration to hours/mins string
 func time_desc(elapsed time.Duration) string {
 	if elapsed.Hours() >= 1 {
 		return fmt.Sprintf("%d h %02d m", elapsed / time.Hour, (elapsed / time.Minute) % 60)
@@ -896,6 +889,7 @@ func time_desc(elapsed time.Duration) string {
 	}
 }
 
+// Create a notification for the given stream
 func (app *TwitchNotifierMain) notify_for_stream(channel_name string, stream *StreamInfo) {
 	created_at := stream.Created_at
 	start_time, err := convert_iso_time(created_at)
@@ -904,8 +898,6 @@ func (app *TwitchNotifierMain) notify_for_stream(channel_name string, stream *St
 
 	stream_browser_link := stream.Channel.Url
 	game := stream.Game
-
-	//msg("got the info")
 
 	var show_info string
 	if game == nil {
@@ -916,16 +908,10 @@ func (app *TwitchNotifierMain) notify_for_stream(channel_name string, stream *St
 
 	message := fmt.Sprintf("%s is now live %s(up %s)", channel_name, show_info, time_desc(elapsed_s))
 
-	//msg("built the message, events interface is %s", app.getEventsInterface())
-
-	//app.getEventsInterface().log(fmt.Sprintf("Showing message: '%s'", message))
-
-	//msg("going to pass the message to balloon tip obj %s", app.windows_balloon_tip_obj)
-
 	msg("Showing message: '%s'", message)
 
+	// Supply a callback to handle the event where the notification was clicked
 	callback := NotificationCallback{channel_name, stream_browser_link}
-
 
 	popupsEnabled := true
 	if (app.options.no_popups != nil) {
@@ -937,6 +923,7 @@ func (app *TwitchNotifierMain) notify_for_stream(channel_name string, stream *St
 	}
 }
 
+// Interface for a desktop notification provider
 type WindowsBalloonTipInterface interface {
 	balloon_tip(title string, message string, callback NotificationCallback)
 }
@@ -1304,9 +1291,6 @@ func (app *OurTwitchNotifierMain) main_loop_main_window_timer_with_auth() {
 func (app *OurTwitchNotifierMain) log(message string) {
 	line_item := fmt.Sprintf("%v: %s", time.Now(), message)
 	msg("In log function, appending: %s", line_item)
-	//debug.PrintStack()
-	//msg("window %s", app.window_impl)
-	//msg("list_log %s", app.window_impl.list_log)
 	app.window_impl.list_log.Append(line_item)
 	//msg("after log")
 }
