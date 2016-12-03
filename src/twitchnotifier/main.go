@@ -277,8 +277,9 @@ func InitMainStatusWindowImpl() *MainStatusWindowImpl {
 
 	// last param should be a specific object id if we have one e.g. out.toolbar_icon.GetId()?
 	wx.Bind(out.toolbar_icon, wx.EVT_TASKBAR_LEFT_DCLICK, out._on_toolbar_icon_left_dclick, wx.ID_ANY)
-	wx.Bind(out.toolbar_icon, wx.EVT_TASKBAR_BALLOON_CLICK, out._on_toolbar_balloon_click, wx.ID_ANY)
-	wx.Bind(out.toolbar_icon, wx.EVT_TASKBAR_BALLOON_TIMEOUT, out._on_toolbar_balloon_timeout, wx.ID_ANY)
+
+	out.additionalBindings()
+
 	wx.Bind(out, wx.EVT_CLOSE_WINDOW, out._on_close, out.GetId())
 
 	twitch_notifier_main := InitOurTwitchNotifierMain()
@@ -481,10 +482,8 @@ func (win *MainStatusWindowImpl) _dispense_remaining_notifications() {
 
 	// show the notification
 	win.set_balloon_click_callback(notification.callback)
-	var delay_ms uint = 200
-	var flags int = 0
-	result := win.toolbar_icon.ShowBalloon(notification.title, notification.msg, delay_ms, flags, _get_asset_icon())
-	assert(result, "error showing balloon")
+
+	win.osNotification(&notification)
 }
 
 func (win *MainStatusWindowImpl) _on_toolbar_balloon_click(e wx.Event) {
