@@ -3,3 +3,5 @@
 *.iml
 *.exe~
 pkg/
+*.dll
+*.lnk
