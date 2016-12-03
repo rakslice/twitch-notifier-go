@@ -742,6 +742,8 @@ func (app *OurTwitchNotifierMain) stream_state_change(channel_id ChannelID, new_
 
 		channel_status.online = new_online
 		channel_status.idx = new_index
+
+		app.need_relayout = true
 	}
 }
 
@@ -760,6 +762,11 @@ func (app *OurTwitchNotifierMain) done_state_changes() {
 		}
 	}
 	app.previously_online_streams = make(map[ChannelID]bool)
+
+	if app.need_relayout {
+		app.window_impl.Frame.Layout()
+		app.need_relayout = false
+	}
 }
 
 // Note that this implementation will run the callback on another thread, so the callback needs to pass control
@@ -1198,6 +1205,7 @@ type OurTwitchNotifierMain struct {
 	previously_online_streams map[ChannelID]bool
 	stream_by_channel_id map[ChannelID]*StreamInfo
 	asynchttpclient *asynchttpclient.Client
+	need_relayout bool
 }
 
 func InitOurTwitchNotifierMain() *OurTwitchNotifierMain {
@@ -1209,6 +1217,7 @@ func InitOurTwitchNotifierMain() *OurTwitchNotifierMain {
 	out.stream_by_channel_id = make(map[ChannelID]*StreamInfo)
 	out.asynchttpclient = &asynchttpclient.Client{}
 	out.asynchttpclient.Concurrency = 3
+	out.need_relayout = false
 	return out
 }
 
