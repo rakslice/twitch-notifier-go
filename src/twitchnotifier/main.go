@@ -515,7 +515,7 @@ func _get_asset_icon_filename() string {
 	subpath := "icon.ico"
 	script_path, err := filepath.Abs(".")
 	assert(err == nil, "icon path failed: %s", err)
-	assets_path := path.Join(script_path, "..", "assets")
+	assets_path := path.Join(script_path, "assets")
 	bitmap_path := path.Join(assets_path, subpath)
 	return bitmap_path
 }
