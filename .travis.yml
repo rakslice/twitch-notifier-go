@@ -29,9 +29,11 @@ addons:
       - libgstreamer1.0-dev
       - libgstreamer-plugins-base1.0-dev
       - libwebkitgtk-3.0-dev
+      - vnc4server
 
 install:
   - go get -x -t ./...
+  - Xvnc :1 &
 
 #install:
 #  - sudo apt-get build-dep wxwidgets2.8
