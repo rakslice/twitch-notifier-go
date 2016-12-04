@@ -26,6 +26,8 @@ GUI uses [wxWidgets](https://www.wxwidgets.org/) and [Liu Shengqiu (dontpanic92)
 
 ## Building from source
 
+If you don't have the source already, grab it from [this project on github](https://github.com/rakslice/twitch-notifier-go) 
+
 First, go to [https://golang.org/dl/](https://golang.org/dl/) and grab the Windows install of Go 1.7.x.
 
 Then in theory you can do:

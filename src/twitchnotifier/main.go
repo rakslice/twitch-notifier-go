@@ -254,7 +254,7 @@ type MainStatusWindowImpl struct {
 	timeHelper *WxTimeHelper
 }
 
-func InitMainStatusWindowImpl() *MainStatusWindowImpl {
+func InitMainStatusWindowImpl(testMode bool) *MainStatusWindowImpl {
 	out := &MainStatusWindowImpl{}
 	out.MainStatusWindow = *initMainStatusWindow(out)
 
@@ -292,7 +292,7 @@ func InitMainStatusWindowImpl() *MainStatusWindowImpl {
 	if oauth_option != nil {
 		twitch_notifier_main._auth_oauth = *oauth_option
 	}
-	if twitch_notifier_main._auth_oauth == "" {
+	if twitch_notifier_main._auth_oauth == "" && !testMode {
 		// TODO remove this once we support web OAuth internally
 		oauthTokenSite := "http://twitchapps.com/tmi"
 		friendlyMessage := "Missing -auth-oauth\n" +
@@ -1338,7 +1338,7 @@ func main() {
 	wx.InitAllImageHandlers()
 
 	app := wx.NewApp()
-	frame := InitMainStatusWindowImpl()
+	frame := InitMainStatusWindowImpl(false)
 	frame.app = app
 	app.SetTopWindow(frame)
 	msg("showing frame")

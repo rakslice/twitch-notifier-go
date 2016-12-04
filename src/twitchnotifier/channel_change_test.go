@@ -16,7 +16,7 @@ func TestStreamsGoOffline(t *testing.T) {
 	wx.InitAllImageHandlers()
 
 	app := wx.NewApp()
-	frame := InitMainStatusWindowImpl()
+	frame := InitMainStatusWindowImpl(true)
 	frame.app = app
 	app.SetTopWindow(frame)
 	msg("showing frame")
