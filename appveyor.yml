@@ -1,0 +1,25 @@
+# most of this is requirements for github.com/dontpanic92/wxGo cribbed from that project's appveyor.yml
+
+version: 1.0.{build}
+platform: x64
+clone_folder: c:\project\src\github.com\rakslice\twitch-notifier-go
+clone_depth: 5
+environment:
+  matrix:
+  - GOROOT: c:\go17
+
+build_script:
+- cmd: >-
+    set GOPATH=c:\project\
+
+    set PATH=c:\msys64\mingw64\bin;%GOROOT%\bin;%PATH%
+
+    go env
+
+    go version
+
+    echo %APPVEYOR_BUILD_FOLDER%
+
+    cd %APPVEYOR_BUILD_FOLDER%
+
+    go get -v -t -x .\\...
