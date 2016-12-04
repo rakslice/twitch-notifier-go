@@ -23,3 +23,19 @@ build_script:
     cd %APPVEYOR_BUILD_FOLDER%
 
     go get -v -t -x .\\...
+
+test_script:
+- cmd: >-
+    set GOPATH=c:\project\
+
+    set PATH=c:\msys64\mingw64\bin;%GOROOT%\bin;%PATH%
+
+    go env
+
+    go version
+
+    echo %APPVEYOR_BUILD_FOLDER%
+
+    cd %APPVEYOR_BUILD_FOLDER%
+
+    go test -x twitchnotifier
