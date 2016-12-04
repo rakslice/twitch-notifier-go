@@ -297,6 +297,10 @@ func InitMainStatusWindowImpl() *MainStatusWindowImpl {
 		flag.Usage()
 		log.Fatal("Showing usage")
 	}
+
+	// get rid of the options button for now
+	out.button_options.Hide()
+
 	return out
 }
 
