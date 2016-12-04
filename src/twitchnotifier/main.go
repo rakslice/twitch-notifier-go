@@ -271,7 +271,8 @@ func InitMainStatusWindowImpl() *MainStatusWindowImpl {
 
 	out.toolbar_icon = wx.NewTaskBarIcon()
 
-	the_icon := _get_asset_icon()
+	the_icon := out._get_asset_icon()
+	assert(the_icon.IsOk(), "asset icon was not ok")
 	out.toolbar_icon.SetIcon(the_icon)
 
 	out.clearLogo()
@@ -519,12 +520,27 @@ func _get_asset_icon_filename() string {
 	return bitmap_path
 }
 
-func _get_asset_icon() wx.Icon {
-	the_icon := wx.NullIcon
+func (win *MainStatusWindowImpl) _get_asset_icon() wx.Icon {
+	icon := wx.NullIcon
 	bitmap_path := _get_asset_icon_filename()
-	loaded_bitmap := wx.NewBitmap(bitmap_path, wx.BITMAP_TYPE_ICO)
-	the_icon.CopyFromBitmap(loaded_bitmap)
-	return the_icon
+
+	_, statErr := os.Stat(bitmap_path)
+	if !os.IsNotExist(statErr) {
+		loaded_bitmap := wx.NewBitmap(bitmap_path, wx.BITMAP_TYPE_ICO)
+		if loaded_bitmap.IsOk() {
+			icon.CopyFromBitmap(loaded_bitmap)
+		}
+	}
+
+	if !icon.IsOk() {
+		// just set the icon to a solid color
+		solidBitmap := win.emptyBitmap(wx.NewSize(16,16), wx.NewColour(byte(72), byte(0), byte(0)))
+		assert(solidBitmap.IsOk(), "error creating solid bitmap")
+		icon.CopyFromBitmap(solidBitmap)
+		assert(icon.IsOk(), "icon copied from bitmap is not ok")
+	}
+
+	return icon
 }
 
 // BASE APP CLASS

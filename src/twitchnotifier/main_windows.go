@@ -13,7 +13,9 @@ func (win *MainStatusWindowImpl) additionalBindings() {
 func (win *MainStatusWindowImpl) osNotification(notification *NotificationQueueEntry) {
 	var delay_ms uint = 200
 	var flags int = 0
-	result := win.toolbar_icon.ShowBalloon(notification.title, notification.msg, delay_ms, flags, _get_asset_icon())
+	icon := win._get_asset_icon()
+	assert(icon.IsOk(), "asset icon was not ok")
+	var result bool
+	result = win.toolbar_icon.ShowBalloon(notification.title, notification.msg, delay_ms, flags, icon)
 	assert(result, "error showing balloon")
-
 }

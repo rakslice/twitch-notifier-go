@@ -14,7 +14,9 @@ func (win *MainStatusWindowImpl) additionalBindings() {
 func (win *MainStatusWindowImpl) osNotification(notification *NotificationQueueEntry) {
 	nm := wx.NewNotificationMessage()
 	nm.SetParent(win)
-	nm.SetIcon(_get_asset_icon())
+	icon := win._get_asset_icon()
+	assert(icon.IsOk(), "asset icon was not ok")
+	nm.SetIcon(icon)
 	nm.SetTitle(notification.title)
 	nm.SetMessage(notification.msg)
 	nm.Show(1)
