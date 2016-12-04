@@ -168,6 +168,7 @@ func (win *MainStatusWindowImpl) emptyBitmap(size wx.Size, colour wx.Colour) wx.
 	dc := wx.NewMemoryDC(bmp)
 	dc.SetBackground(wx.NewBrush(colour))
 	dc.Clear()
+	wx.DeleteDC(dc)
 	return bmp
 }
 
