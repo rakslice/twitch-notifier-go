@@ -1,6 +1,6 @@
 # twitch-notifier-go
 
-Windows: [![Build status](https://ci.appveyor.com/api/projects/status/wdd0jhu4gobdy83a?svg=true)](https://ci.appveyor.com/project/rakslice/twitch-notifier-go) Linux: [![Travis CI Build Status](https://travis-ci.org/rakslice/twitch-notifier-go.svg)](https://travis-ci.org/rakslice/twitch-notifier)
+Windows: [![Build status](https://ci.appveyor.com/api/projects/status/wdd0jhu4gobdy83a?svg=true)](https://ci.appveyor.com/project/rakslice/twitch-notifier-go) Linux: [![Travis CI Build Status](https://travis-ci.org/rakslice/twitch-notifier-go.svg)](https://travis-ci.org/rakslice/twitch-notifier-go)
 
 A quick golang port of my python twitch notifier.  Works on Windows; Linux support in progress.
 
