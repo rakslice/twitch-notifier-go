@@ -37,5 +37,5 @@ test_script:
     echo %APPVEYOR_BUILD_FOLDER%
 
     cd %APPVEYOR_BUILD_FOLDER%
-
-    go test -x twitchnotifier
+    cd src\twitchnotifier
+    go test -x

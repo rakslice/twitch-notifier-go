@@ -773,7 +773,7 @@ func (app *OurTwitchNotifierMain) done_state_changes() {
 	// when we're only using the follows API, we we won't see another channel info when a stream goes offline
 	// but we've keep track of which streams we saw in the previous update that we haven't seen again
 	for channel_id, val := range app.previously_online_streams {
-		msg("stream %s was online and now is %s", channel_id, val)
+		msg("stream %v was online and now is %v", channel_id, val)
 		// stream went offline
 		new_online := false
 		var no_stream *StreamInfo = nil
