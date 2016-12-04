@@ -25,11 +25,11 @@ build_script:
     go get -v -t -x .\\...
 
 after_build:
-  - 7z a twitch-notifier-go.zip %APPVEYOR_BUILD_FOLDER%\bin\twitchnotifier.exe
-  - 7z a twitch-notifier-go.zip %APPVEYOR_BUILD_FOLDER%\src\github.com\rakslice\twitch-notifier-go\README.md
-  - 7z a twitch-notifier-go.zip %APPVEYOR_BUILD_FOLDER%\src\github.com\rakslice\twitch-notifier-go\LICENSE
+  - 7z a twitch-notifier-go.zip c:\project\bin\twitchnotifier.exe
+  - 7z a twitch-notifier-go.zip %APPVEYOR_BUILD_FOLDER%\README.md
+  - 7z a twitch-notifier-go.zip %APPVEYOR_BUILD_FOLDER%\LICENSE
   - mkdir assets
-  - copy %APPVEYOR_BUILD_FOLDER%\src\github.com\rakslice\twitch-notifier-go\src\twitchnotifier\assets\*.* assets
+  - copy %APPVEYOR_BUILD_FOLDER%\src\twitchnotifier\assets\*.* assets
   - 7z a twitch-notifier-go.zip assets\*.*
 
 artifacts:
