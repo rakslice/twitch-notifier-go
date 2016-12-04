@@ -288,8 +288,32 @@ func InitMainStatusWindowImpl() *MainStatusWindowImpl {
 	twitch_notifier_main.options = parse_args()
 	twitch_notifier_main.window_impl = out
 	oauth_option := twitch_notifier_main.options.authorization_oauth
+	msg("oauth option is %s", oauth_option)
 	if oauth_option != nil {
 		twitch_notifier_main._auth_oauth = *oauth_option
+	}
+	if twitch_notifier_main._auth_oauth == "" {
+		// TODO remove this once we support web OAuth internally
+		oauthTokenSite := "http://twitchapps.com/tmi"
+		friendlyMessage := "Missing -auth-oauth\n" +
+			"\n" +
+			"Howdy! Twitch login within twitch-notifier isn't supported yet.\n" +
+			"\n" +
+			"You'll have to login and get an OAuth token in your browser (e.g. at %s), \n" +
+			"and then run:\n" +
+		        "\n" +
+			"  twitchnotifier -auth-oauth YOUR_TOKEN_HERE\n" +
+			"\n" +
+			"putting your token in for the placeholder.\n" +
+			"Sorry for the inconvenience!\n" +
+			"\n" +
+			"Click Ok to open %s"
+		result := wx.MessageBox(fmt.Sprintf(friendlyMessage, oauthTokenSite, oauthTokenSite), "twitch-notifier",
+		              wx.OK | wx.CANCEL)
+		if result == wx.OK {
+			webbrowser_open(oauthTokenSite)
+		}
+		log.Fatal("Exiting due to no auth")
 	}
 	out.main_obj = twitch_notifier_main
 
