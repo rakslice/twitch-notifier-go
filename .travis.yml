@@ -34,6 +34,7 @@ addons:
 install:
   - go get -x -t ./...
   - Xvnc :1 &
+  - export DISPLAY=:1
 
 #install:
 #  - sudo apt-get build-dep wxwidgets2.8
