@@ -7,7 +7,7 @@ import "github.com/dontpanic92/wxGo/wx"
 
 func (win *MainStatusWindowImpl) additionalBindings() {
 	// last param should be a specific object id if we have one e.g. out.toolbar_icon.GetId()?
-	wx.Bind(out.toolbar_icon, wx.EVT_TASKBAR_LEFT_DCLICK, out._on_toolbar_icon_left_dclick, wx.ID_ANY)
+	wx.Bind(win.toolbar_icon, wx.EVT_TASKBAR_LEFT_DCLICK, win._on_toolbar_icon_left_dclick, wx.ID_ANY)
 	wx.Bind(win.toolbar_icon, wx.EVT_TASKBAR_BALLOON_CLICK, win._on_toolbar_balloon_click, wx.ID_ANY)
 	wx.Bind(win.toolbar_icon, wx.EVT_TASKBAR_BALLOON_TIMEOUT, win._on_toolbar_balloon_timeout, wx.ID_ANY)
 }
