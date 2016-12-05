@@ -3,6 +3,8 @@
 
 package main
 
+import "github.com/dontpanic92/wxGo/wx"
+
 func main() {
 	commonMain()
 }
