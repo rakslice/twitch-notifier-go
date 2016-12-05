@@ -19,3 +19,13 @@ func (win *MainStatusWindowImpl) osNotification(notification *NotificationQueueE
 	result = win.toolbar_icon.ShowBalloon(notification.title, notification.msg, delay_ms, flags, icon)
 	assert(result, "error showing balloon")
 }
+
+func main() {
+	commonMain()
+}
+
+func prefsRelativePath() []string {
+	return []string{}
+}
+
+const shouldDoParse = true

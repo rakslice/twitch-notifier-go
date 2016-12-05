@@ -23,6 +23,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/user"
 )
 
 
@@ -285,13 +286,26 @@ func InitMainStatusWindowImpl(testMode bool) *MainStatusWindowImpl {
 	wx.Bind(out, wx.EVT_CLOSE_WINDOW, out._on_close, out.GetId())
 
 	twitch_notifier_main := InitOurTwitchNotifierMain()
-	twitch_notifier_main.options = parse_args()
+	if shouldDoParse {
+		twitch_notifier_main.options = parse_args()
+	} else {
+		twitch_notifier_main.options = &Options{}
+	}
 	twitch_notifier_main.window_impl = out
 	oauth_option := twitch_notifier_main.options.authorization_oauth
 	msg("oauth option is %s", oauth_option)
 	if oauth_option != nil {
 		twitch_notifier_main._auth_oauth = *oauth_option
 	}
+
+	tokenFilename := getTokenFilename()
+
+	if twitch_notifier_main._auth_oauth == "" && !testMode && fileExists(tokenFilename) {
+		buf, err := ioutil.ReadFile(tokenFilename)
+		assert(err == nil, "error reading token file '%s': %s", tokenFilename, err)
+		twitch_notifier_main._auth_oauth = string(buf)
+	}
+
 	if twitch_notifier_main._auth_oauth == "" && !testMode {
 		// TODO remove this once we support web OAuth internally
 		oauthTokenSite := "http://twitchapps.com/tmi"
@@ -300,7 +314,7 @@ func InitMainStatusWindowImpl(testMode bool) *MainStatusWindowImpl {
 			"Howdy! Twitch login within twitch-notifier isn't supported yet.\n" +
 			"\n" +
 			"You'll have to login and get an OAuth token in your browser (e.g. at %s), \n" +
-			"and then run:\n" +
+			"and then enter the token at the next prompt, or run:\n" +
 		        "\n" +
 			"  twitchnotifier -auth-oauth YOUR_TOKEN_HERE\n" +
 			"\n" +
@@ -308,16 +322,38 @@ func InitMainStatusWindowImpl(testMode bool) *MainStatusWindowImpl {
 			"Sorry for the inconvenience!\n" +
 			"\n" +
 			"Click Ok to open %s"
-		result := wx.MessageBox(fmt.Sprintf(friendlyMessage, oauthTokenSite, oauthTokenSite), "twitch-notifier",
+		result := wx.MessageBox(fmt.Sprintf(friendlyMessage, oauthTokenSite, oauthTokenSite), "twitch-notifier-go",
 		              wx.OK | wx.CANCEL)
+
+		enteredToken := false
+
 		if result == wx.OK {
 			webbrowser_open(oauthTokenSite)
+
+			// let's attempt to get a token from the user
+			msg("creating text entry dialog")
+			dlg := wx.NewTextEntryDialog(out, "Enter your Twitch OAuth token", fmt.Sprintf("This will be saved in '%s'", tokenFilename), "", wx.OK | wx.CANCEL)
+			if dlg.ShowModal() == wx.ID_OK {
+				newToken := strings.TrimSpace(dlg.GetValue());
+				if newToken != "" {
+					buf := []byte(newToken)
+					writeErr := ioutil.WriteFile(tokenFilename, buf, 0600)
+					assert(writeErr == nil, "Error writing token file '%s': %s", tokenFilename, writeErr)
+
+					twitch_notifier_main._auth_oauth = newToken
+					enteredToken = true
+				}
+			}
+
 		}
-		log.Fatal("Exiting due to no auth")
+		if !enteredToken {
+			log.Fatal("Exiting due to no auth")
+		}
 	}
+	msg("after oauth setting check")
 	out.main_obj = twitch_notifier_main
 
-	if *twitch_notifier_main.options.help {
+	if twitch_notifier_main.options.help != nil && *twitch_notifier_main.options.help {
 		flag.Usage()
 		log.Fatal("Showing usage")
 	}
@@ -326,6 +362,27 @@ func InitMainStatusWindowImpl(testMode bool) *MainStatusWindowImpl {
 	out.button_options.Hide()
 
 	return out
+}
+
+func fileExists(filename string) bool {
+	_, err := os.Stat(filename)
+	return !os.IsNotExist(err)
+}
+
+func userRelativePath(parts ...string) string {
+	curUser, userErr := user.Current()
+	assert(userErr == nil, "error getting current user: %s", userErr)
+	assert(curUser != nil, "current user was nil")
+
+	newParts := append([]string{curUser.HomeDir}, parts...)
+
+	logFilename := path.Join(newParts...)	
+	return logFilename
+}
+
+func getTokenFilename() string {
+	newParts := append(prefsRelativePath(), "twitchnotifier.token")
+	return userRelativePath(newParts...)
 }
 
 // TIME HELPER STUFF
@@ -595,7 +652,7 @@ func InitTwitchNotifierMain() *TwitchNotifierMain {
 
 
 func (app *TwitchNotifierMain) need_browser_auth() bool {
-	return (!*app.options.no_browser_auth) && app._auth_oauth == ""
+	return (app.options.no_browser_auth == nil || !*app.options.no_browser_auth) && app._auth_oauth == ""
 }
 
 func msg(format string, a... interface{}) {
@@ -644,7 +701,9 @@ func parse_args() *Options {
 	options.ui = flag.Bool("ui", false, "Use the wxpython UI")
 	options.no_popups = flag.Bool("no-popups", false, "Don't do popups, for when using just the UI")
 	options.help = flag.Bool("help", false, "Show usage")
+	msg("before flag parse")
 	flag.Parse()
+	msg("after flag parse")
 	return options
 }
 
@@ -669,7 +728,7 @@ type StreamChannel struct {
 }
 
 func (app *TwitchNotifierMain) log(msg string) {
-	if *app.options.debug_output {
+	if app.options.debug_output != nil && *app.options.debug_output {
 		log.Printf("%s TwitchNotifierMain: %s\n", time.Now(), msg)
 	}
 }
@@ -953,7 +1012,7 @@ func (app *TwitchNotifierMain) notify_for_stream(channel_name string, stream *St
 	}
 
 	if popupsEnabled && app.windows_balloon_tip_obj != nil {
-		app.windows_balloon_tip_obj.balloon_tip("twitch-notifier", message, callback)
+		app.windows_balloon_tip_obj.balloon_tip("twitch-notifier-go", message, callback)
 	}
 }
 
@@ -1139,7 +1198,7 @@ func (watcher *ChannelWatcher) next() WaitItem {
 			channel_name := channel.Display_Name
 			msg("processing channel follow for %s", channel_name)
 			notifications_enabled := follow.Notifications
-			if *app.options.all || notifications_enabled {
+			if (app.options.all != nil && *app.options.all) || notifications_enabled {
 				watcher.channels_followed[channel_id] = true
 				watcher.channels_followed_names = append(watcher.channels_followed_names, channel_name)
 				watcher.channel_info[channel_id] = channel
@@ -1216,7 +1275,13 @@ func (watcher *ChannelWatcher) next() WaitItem {
 
 	app.getEventsInterface().done_state_changes()
 
-	sleep_until_next_poll_s := *app.options.poll
+	var sleep_until_next_poll_s int
+	if app.options.poll == nil {
+		sleep_until_next_poll_s = 60
+	} else {
+		sleep_until_next_poll_s = *app.options.poll
+	}
+	
 	if sleep_until_next_poll_s < 60 {
 		sleep_until_next_poll_s = 60
 	}
@@ -1270,6 +1335,7 @@ func InitOurTwitchNotifierMain() *OurTwitchNotifierMain {
 	out.channel_status_by_id = make(map[ChannelID]*ChannelStatus)
 	out.previously_online_streams = make(map[ChannelID]bool)
 	out.stream_by_channel_id = make(map[ChannelID]*StreamInfo)
+	msg("before http client")
 	out.asynchttpclient = &asynchttpclient.Client{}
 	out.asynchttpclient.Concurrency = 3
 	out.need_relayout = false
@@ -1339,7 +1405,8 @@ func (app *OurTwitchNotifierMain) log(message string) {
 }
 
 
-func main() {
+func commonMain() {
+
 	// initialize the handlers for all image formats so that wx.Bitmap routines can load all
 	// supported image formats from disk
 	wx.InitAllImageHandlers()
