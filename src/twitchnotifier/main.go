@@ -1076,7 +1076,14 @@ func (watcher *ChannelWatcher) next() WaitItem {
 		// first time querying
 
 		if app._auth_oauth != "" {
-			authorization := "OAuth " + app._auth_oauth
+			var authToken string = strings.TrimSpace(app._auth_oauth)
+
+			tmiOauthPrefix := "oauth:"
+			if strings.HasPrefix(authToken, tmiOauthPrefix) {
+				authToken = authToken[len(tmiOauthPrefix):]
+			}
+
+			authorization := "OAuth " + authToken
 			app.krakenInstance.addHeader("Authorization", authorization)
 
 			// FIXME set fast query mode (support for slow query later)
