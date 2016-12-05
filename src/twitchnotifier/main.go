@@ -228,6 +228,7 @@ type NotificationQueueEntry struct {
 	callback func() error
 	title string
 	msg string
+	url string
 }
 
 // CONCRETE WINDOW DEFINITION AND CONSTRUCTOR
@@ -277,9 +278,6 @@ func InitMainStatusWindowImpl(testMode bool) *MainStatusWindowImpl {
 	out.toolbar_icon.SetIcon(the_icon)
 
 	out.clearLogo()
-
-	// last param should be a specific object id if we have one e.g. out.toolbar_icon.GetId()?
-	wx.Bind(out.toolbar_icon, wx.EVT_TASKBAR_LEFT_DCLICK, out._on_toolbar_icon_left_dclick, wx.ID_ANY)
 
 	out.additionalBindings()
 
@@ -546,8 +544,8 @@ func (win *MainStatusWindowImpl) set_balloon_click_callback(callback func() erro
 	win.balloon_click_callback = callback
 }
 
-func (win *MainStatusWindowImpl) enqueue_notification(title string, msg string, callback NotificationCallback) {
-	notification := NotificationQueueEntry{callback.callback, title, msg}
+func (win *MainStatusWindowImpl) enqueue_notification(title string, msg string, callback NotificationCallback, url string) {
+	notification := NotificationQueueEntry{callback.callback, title, msg, url}
 	win.notifications_queue = append(win.notifications_queue, notification)
 	if !win.notifications_queue_in_progress {
 		// kick off the notification cycle
@@ -570,6 +568,7 @@ func (win *MainStatusWindowImpl) _dispense_remaining_notifications() {
 	// show the notification
 	win.set_balloon_click_callback(notification.callback)
 
+	win.main_obj.log(fmt.Sprintf("Showing notification '%s'", notification.msg))
 	win.osNotification(&notification)
 }
 
@@ -1012,13 +1011,13 @@ func (app *TwitchNotifierMain) notify_for_stream(channel_name string, stream *St
 	}
 
 	if popupsEnabled && app.windows_balloon_tip_obj != nil {
-		app.windows_balloon_tip_obj.balloon_tip("twitch-notifier-go", message, callback)
+		app.windows_balloon_tip_obj.balloon_tip("twitch-notifier-go", message, callback, stream_browser_link)
 	}
 }
 
 // Interface for a desktop notification provider
 type WindowsBalloonTipInterface interface {
-	balloon_tip(title string, message string, callback NotificationCallback)
+	balloon_tip(title string, message string, callback NotificationCallback, url string)
 }
 
 
@@ -1030,8 +1029,8 @@ func NewOurWindowsBalloonTip(main_window *MainStatusWindowImpl) *OurWindowsBallo
 	return &OurWindowsBalloonTip{main_window}
 }
 
-func (tip *OurWindowsBalloonTip) balloon_tip(title string, msg string, callback NotificationCallback) {
-	tip.main_window.enqueue_notification(title, msg, callback)
+func (tip *OurWindowsBalloonTip) balloon_tip(title string, msg string, callback NotificationCallback, url string) {
+	tip.main_window.enqueue_notification(title, msg, callback, url)
 }
 
 type NotificationCallback struct {
