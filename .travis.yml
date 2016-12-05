@@ -1,6 +1,14 @@
 
 # most of this is requirements for github.com/dontpanic92/wxGo cribbed from that project's .travis.yml
 
+os:
+  - linux
+  - osx
+
+matrix:
+  allow_failures:
+    - os: osx
+
 sudo: required
 dist: trusty
 
@@ -33,8 +41,8 @@ addons:
 
 install:
   - go get -x -t ./...
-  - Xvnc :1 &
-  - export DISPLAY=:1
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then Xvnc :1 &            fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export DISPLAY=:1 ;  fi
 
 #install:
 #  - sudo apt-get build-dep wxwidgets2.8
