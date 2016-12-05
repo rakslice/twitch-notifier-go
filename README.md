@@ -28,8 +28,6 @@ GUI uses [wxWidgets](https://www.wxwidgets.org/) and [Liu Shengqiu (dontpanic92)
 
 ## Building from source
 
-If you don't have the source already, grab it from [this project on github](https://github.com/rakslice/twitch-notifier-go) 
-
 First, go to [https://golang.org/dl/](https://golang.org/dl/) and grab the Windows install of Go 1.7.x.
 
 Then in theory you can do:
@@ -41,8 +39,8 @@ or something like that? But that probably won't work just yet.
 So the old fashioned way to get up and running is to:
 
 1. Follow the directions at [https://github.com/dontpanic92/wxGo](https://github.com/dontpanic92/wxGo) to get wxGo installed
-2. Download the twitch-notifier-go source
-3. Fix those include paths
+2. Download the twitch-notifier-go source. If you're not reading this on github, and you don't have the source already, go get it at [github.com/rakslice/twitch-notifier-go](https://github.com/rakslice/twitch-notifier-go) 
+
 5. Use the same environment as for wxGo to `go build twitchnotifier` 
 
 
