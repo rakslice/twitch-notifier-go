@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>       <string>English</string>
+	<key>CFBundleExecutable</key>              <string>twitchnotifier</string>
+	<key>CFBundleInfoDictionaryVersion</key>   <string>6.0</string>
+	<key>CFBundlePackageType</key>             <string>APPL</string>
+	<key>CSResourcesFileMapped</key>           <true/>
+ 
+	<key>CFBundleVersion</key>                 <string>0.1</string>
+	<key>CFBundleShortVersionString</key>      <string>0.1</string>
+ 
+	<key>CFBundleName</key>                    <string>twitch-notifier-go</string>
+	<key>CFBundleIconFile</key>                <string>icon.icns</string>
+
+	<key>NSUserNotificationAlertStyle</key>    <string>alert</string>
+
+	<!--
+ 
+	<key>CFBundleDocumentTypes</key> <array>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>'gif'</string>
+				<string>'jpeg'</string>
+				<string>'png'</string>
+				<string>'tiff'</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>      <string>'icon_for_your_documents.icns'</string>
+			<key>CFBundleTypeName</key>          <string>'User-visible description for these documents, e.g. image files'</string>
+			<key>CFBundleTypeRole</key>          <string>Editor</string>
+			<key>LSIsAppleDefaultForType</key>   <true/>
+			<key>LSTypeIsPackage</key>           <false/>
+		</dict>
+ 
+	</array>
+	-->
+ 
+</dict>
+</plist>
+
