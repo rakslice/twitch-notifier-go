@@ -1,7 +1,9 @@
 package main
 
 /**
-This is mostly straight out of https://github.com/Fugiman/kaet/blob/master/kraken.go
+A flexible wrapper around the twitch.tv HTTP API.
+
+The basic kraken() single-call functionality is mostly right out of https://github.com/Fugiman/kaet/blob/master/kraken.go.
  */
 
 import (
