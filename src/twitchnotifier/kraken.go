@@ -254,6 +254,8 @@ func (state *KrakenPager) loadPage() error {
 	if err != nil {
 		return err
 	}
+	assert(resp.StatusCode == 200, "got status code %s", resp.StatusCode)
+
 	state.currentPageInProgress = true
 	state.currentPageResponse = resp
 	state.gotResponseTotalFieldValue = false
