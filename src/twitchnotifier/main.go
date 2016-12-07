@@ -300,58 +300,58 @@ func InitMainStatusWindowImpl(testMode bool, replacementOptionsFunc func() *Opti
 		twitch_notifier_main._auth_oauth = *oauth_option
 	}
 
-	tokenFilename := getTokenFilename()
-
-	if twitch_notifier_main._auth_oauth == "" && !testMode && fileExists(tokenFilename) {
-		buf, err := ioutil.ReadFile(tokenFilename)
-		assert(err == nil, "error reading token file '%s': %s", tokenFilename, err)
-		twitch_notifier_main._auth_oauth = string(buf)
-	}
-
-	if twitch_notifier_main._auth_oauth == "" && !testMode {
-		// TODO remove this once we support web OAuth internally
-		oauthTokenSite := "http://twitchapps.com/tmi"
-		friendlyMessage := "Missing -auth-oauth\n" +
-			"\n" +
-			"Howdy! Twitch login within twitch-notifier isn't supported yet.\n" +
-			"\n" +
-			"You'll have to login and get an OAuth token in your browser (e.g. at %s), \n" +
-			"and then enter the token at the next prompt, or run:\n" +
-		        "\n" +
-			"  twitchnotifier -auth-oauth YOUR_TOKEN_HERE\n" +
-			"\n" +
-			"putting your token in for the placeholder.\n" +
-			"Sorry for the inconvenience!\n" +
-			"\n" +
-			"Click Ok to open %s"
-		result := wx.MessageBox(fmt.Sprintf(friendlyMessage, oauthTokenSite, oauthTokenSite), "twitch-notifier-go",
-		              wx.OK | wx.CANCEL)
-
-		enteredToken := false
-
-		if result == wx.OK {
-			webbrowser_open(oauthTokenSite)
-
-			// let's attempt to get a token from the user
-			msg("creating text entry dialog")
-			dlg := wx.NewTextEntryDialog(out, "Enter your Twitch OAuth token", fmt.Sprintf("This will be saved in '%s'", tokenFilename), "", wx.OK | wx.CANCEL)
-			if dlg.ShowModal() == wx.ID_OK {
-				newToken := strings.TrimSpace(dlg.GetValue());
-				if newToken != "" {
-					buf := []byte(newToken)
-					writeErr := ioutil.WriteFile(tokenFilename, buf, 0600)
-					assert(writeErr == nil, "Error writing token file '%s': %s", tokenFilename, writeErr)
-
-					twitch_notifier_main._auth_oauth = newToken
-					enteredToken = true
-				}
-			}
-
-		}
-		if !enteredToken {
-			log.Fatal("Exiting due to no auth")
-		}
-	}
+	//tokenFilename := getTokenFilename()
+	//
+	//if twitch_notifier_main._auth_oauth == "" && !testMode && fileExists(tokenFilename) {
+	//	buf, err := ioutil.ReadFile(tokenFilename)
+	//	assert(err == nil, "error reading token file '%s': %s", tokenFilename, err)
+	//	twitch_notifier_main._auth_oauth = string(buf)
+	//}
+	//
+	//if twitch_notifier_main._auth_oauth == "" && !testMode {
+	//	// TODO remove this once we support web OAuth internally
+	//	oauthTokenSite := "http://twitchapps.com/tmi"
+	//	friendlyMessage := "Missing -auth-oauth\n" +
+	//		"\n" +
+	//		"Howdy! Twitch login within twitch-notifier isn't supported yet.\n" +
+	//		"\n" +
+	//		"You'll have to login and get an OAuth token in your browser (e.g. at %s), \n" +
+	//		"and then enter the token at the next prompt, or run:\n" +
+	//	        "\n" +
+	//		"  twitchnotifier -auth-oauth YOUR_TOKEN_HERE\n" +
+	//		"\n" +
+	//		"putting your token in for the placeholder.\n" +
+	//		"Sorry for the inconvenience!\n" +
+	//		"\n" +
+	//		"Click Ok to open %s"
+	//	result := wx.MessageBox(fmt.Sprintf(friendlyMessage, oauthTokenSite, oauthTokenSite), "twitch-notifier-go",
+	//	              wx.OK | wx.CANCEL)
+	//
+	//	enteredToken := false
+	//
+	//	if result == wx.OK {
+	//		webbrowser_open(oauthTokenSite)
+	//
+	//		// let's attempt to get a token from the user
+	//		msg("creating text entry dialog")
+	//		dlg := wx.NewTextEntryDialog(out, "Enter your Twitch OAuth token", fmt.Sprintf("This will be saved in '%s'", tokenFilename), "", wx.OK | wx.CANCEL)
+	//		if dlg.ShowModal() == wx.ID_OK {
+	//			newToken := strings.TrimSpace(dlg.GetValue());
+	//			if newToken != "" {
+	//				buf := []byte(newToken)
+	//				writeErr := ioutil.WriteFile(tokenFilename, buf, 0600)
+	//				assert(writeErr == nil, "Error writing token file '%s': %s", tokenFilename, writeErr)
+	//
+	//				twitch_notifier_main._auth_oauth = newToken
+	//				enteredToken = true
+	//			}
+	//		}
+	//
+	//	}
+	//	if !enteredToken {
+	//		log.Fatal("Exiting due to no auth")
+	//	}
+	//}
 	msg("after oauth setting check")
 	out.main_obj = twitch_notifier_main
 
@@ -658,6 +658,11 @@ func InitTwitchNotifierMain() *TwitchNotifierMain {
 
 
 func (app *TwitchNotifierMain) need_browser_auth() bool {
+	msg("options.no_browser_auth %s", app.options.no_browser_auth)
+	if app.options.no_browser_auth != nil {
+		msg("options.no_browser_auth %s", *app.options.no_browser_auth)
+	}
+	msg("app._auth_oauth %s", app._auth_oauth)
 	return (app.options.no_browser_auth == nil || !*app.options.no_browser_auth) && app._auth_oauth == ""
 }
 
@@ -697,7 +702,7 @@ type Options struct {
 func parse_args() *Options {
 	options := &Options{}
 	options.username = flag.String("username", "", "username to use")
-	options.no_browser_auth = flag.Bool("no-browser-auth", true, "don't authenticate through twitch website login if token not supplied")
+	options.no_browser_auth = flag.Bool("no-browser-auth", false, "don't authenticate through twitch website login if token not supplied")
 	options.poll = flag.Int("poll", 60, "poll interval")
 	options.all = flag.Bool("all", false, "Watch all followed streams, not just ones with notifications enabled")
 	options.idle = flag.Int("idle", 300, "idle time threshold to consider locked (seconds)")
@@ -1379,11 +1384,27 @@ func (app *OurTwitchNotifierMain) getChannelIdForListEntry(isOnline bool, index 
 }
 
 func (app *OurTwitchNotifierMain) main_loop_main_window_timer() {
+	//msg("need browser auth")
 	if app.need_browser_auth() {
-		assert(false, "need browser auth")
+		msg("do browser auth")
+		app.do_browser_auth()
 	} else {
 		app.main_loop_main_window_timer_with_auth()
 	}
+}
+
+func (app *OurTwitchNotifierMain) do_browser_auth() {
+	//debug := app.options.debug_output == nil || *app.options.debug_output
+	debug := true
+	doBrowserAuth(app._auth_complete_callback, debug)
+}
+
+func (app *OurTwitchNotifierMain) _auth_complete_callback(token string) {
+	assert(token != "", "token was empty")
+
+	app._auth_oauth = token
+
+	app.main_loop_main_window_timer_with_auth()
 }
 
 /** Do a poll of the API and set up a timer to get us to the next poll
@@ -1417,7 +1438,10 @@ func commonMain(replacementOptionsFunc func() *Options) {
 	wx.InitAllImageHandlers()
 
 	app := wx.NewApp()
+
+	msg("init top")
 	frame := InitMainStatusWindowImpl(false, replacementOptionsFunc)
+
 	frame.app = app
 	app.SetTopWindow(frame)
 	msg("showing frame")
