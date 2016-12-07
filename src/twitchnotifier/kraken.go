@@ -93,7 +93,7 @@ func (state *KrakenPager) Next(val interface{}) error {
 	}
 
 	dec := state.currentPageDecoder
-
+	assert(dec != nil, "in Next(): current page was in progress but current page decoder was nil")
 	state.assertWithCleanup(dec.More(), "page did not contain at least one item")
 
 	err := dec.Decode(val)
@@ -255,13 +255,16 @@ func (obj *Kraken) PagedKraken(resultsListKey string, pageSize uint, path ...str
 		// there was a problem
 		return nil, err
 	} else {
-		if !out.currentPageDecoder.More() {
-			// page is empty, verify that total was empty and finish off
-			out.finishPagePostList()
-			totalNumItems := out.responseTotalFieldValue
-			out.cleanupPage()
-			assert(totalNumItems == 0, "got empty first page but _total was non-zero")
-			out.endOfResults = true
+		if out.currentPageInProgress {
+			assert(out.currentPageDecoder != nil, "current page in progress but current page decoder is nil")
+			if !out.currentPageDecoder.More() {
+				// page is empty, verify that total was empty and finish off
+				out.finishPagePostList()
+				totalNumItems := out.responseTotalFieldValue
+				out.cleanupPage()
+				assert(totalNumItems == 0, "got empty first page but _total was non-zero")
+				out.endOfResults = true
+			}
 		}
 
 		// all good
