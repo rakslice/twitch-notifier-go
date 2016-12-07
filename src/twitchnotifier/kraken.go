@@ -198,6 +198,11 @@ func (state *KrakenPager) seekToResultsListArrayOrEnd() {
 					state.resultsListKey, arrayStartDelim, state.path)
 				// ok, next up is an array element ready to read or end of list
 				return
+			} else if key == "error" {
+				var apiReturnedError interface{}
+				decodeError := dec.Decode(&apiReturnedError)
+				state.assertWithCleanup(decodeError == nil, "error decoding the returned error value: %s", decodeError)
+				assert(false, "The API returned an error field in the response: %s", apiReturnedError)
 			} else {
 				// just eat the other values
 				var unused interface{}
