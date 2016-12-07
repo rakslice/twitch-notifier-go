@@ -15,6 +15,7 @@ import (
 	"time"
 	"net/url"
 	"strconv"
+	"fmt"
 )
 
 type Kraken struct {
@@ -29,6 +30,18 @@ func InitKraken() *Kraken {
 
 func (obj *Kraken) addHeader(headerName string, headerValue string) {
 	obj.extraHeaders[headerName] = headerValue
+}
+
+type KrakenError struct {
+	msg string
+}
+
+func NewKrakenError(format string, args... interface{}) *KrakenError {
+	return &KrakenError{fmt.Sprintf(format, args...)}
+}
+
+func (err *KrakenError) Error() string {
+	return err.msg
 }
 
 type KrakenPager struct {
@@ -59,7 +72,7 @@ func (state *KrakenPager) More() bool {
 	return !state.endOfResults
 }
 
-func (state *KrakenPager) finishPagePostList() {
+func (state *KrakenPager) finishPagePostList() error {
 
 	if !state.gotResponseTotalFieldValue {
 		// still need to know the total number of items on the page
@@ -77,7 +90,11 @@ func (state *KrakenPager) finishPagePostList() {
 		state.seekToResultsListArrayOrEnd()
 	}
 
-	assert(state.gotResponseTotalFieldValue, "didn't get a _total value in page")
+	if !state.gotResponseTotalFieldValue {
+		return NewKrakenError("Response object was missing the '_total' field")
+	}
+
+	return nil
 }
 
 // This deserializes the next list item into val, with the same behavior as json.Unmarshal.
@@ -85,6 +102,7 @@ func (state *KrakenPager) finishPagePostList() {
 func (state *KrakenPager) Next(val interface{}) error {
 	assert(!state.endOfResults, "already ended")
 	if !state.currentPageInProgress {
+		msg("Next(): no page in progress, loading page")
 		pageErr := state.loadPage()
 		if pageErr != nil {
 			return pageErr
@@ -92,9 +110,26 @@ func (state *KrakenPager) Next(val interface{}) error {
 
 	}
 
+	assert(state.currentPageInProgress, "In Next(), no page in progress after loadPage. How did we get here? More() is %s", state.More())
+
 	dec := state.currentPageDecoder
 	assert(dec != nil, "in Next(): current page was in progress but current page decoder was nil")
-	state.assertWithCleanup(dec.More(), "page did not contain at least one item")
+
+	if !dec.More() {
+		if state.currentPageInProgress {
+			msg("out of items on page -- finish page")
+			state.finishPagePostList()
+		}
+		// actually there were no items available.
+		var errMsg string
+		if state.gotResponseTotalFieldValue {
+			errMsg = fmt.Sprintf("Response object '_total' was %v but the page was empty", state.responseTotalFieldValue)
+		} else {
+			errMsg = "page did not contain at least one item"
+		}
+		state.cleanupPage()
+		return NewKrakenError(errMsg)
+	}
 
 	err := dec.Decode(val)
 	if (err != nil) {
@@ -104,7 +139,10 @@ func (state *KrakenPager) Next(val interface{}) error {
 	if !dec.More() {
 		// we are at the end of the array for this page
 
-		state.finishPagePostList()
+		finishPageErr := state.finishPagePostList()
+		if finishPageErr != nil {
+			return finishPageErr
+		}
 
 		totalNumItems := state.responseTotalFieldValue
 
@@ -158,7 +196,7 @@ func (state *KrakenPager) seekToResultsListArrayOrEnd() {
 				state.assertWithCleanup(wasDelim, "json array start token was not a delim, was %s in %s", arrayStart, state.path)
 				state.assertWithCleanup(arrayStartDelim == '[', "value for %s was not an array, was %s in %s",
 					state.resultsListKey, arrayStartDelim, state.path)
-				// ok, next up is an array element ready to read
+				// ok, next up is an array element ready to read or end of list
 				return
 			} else {
 				// just eat the other values
@@ -171,6 +209,7 @@ func (state *KrakenPager) seekToResultsListArrayOrEnd() {
 	}
 
 	// if we got here we reached the end of the page
+	msg("reached the end of page in seekToResultsListArrayOrEnd")
 	state.cleanupPage()
 }
 
@@ -194,8 +233,18 @@ func (pagerState *KrakenPager) assertWithCleanup(condition bool, format string, 
 	assert(condition, format, args...)
 }
 
+func copyValues(values url.Values) url.Values {
+	out := make(url.Values)
+	for key, slice := range values {
+		for _, entry := range slice {
+			out.Add(key, entry)
+		}
+	}
+	return out
+}
+
 func (state *KrakenPager) loadPage() error {
-	params := state.baseParams
+	params := copyValues(state.baseParams)
 	params.Add("limit", strconv.Itoa(int(state.pageSize)))
 	params.Add("offset", strconv.Itoa(int(state.pageOffset)))
 
@@ -210,6 +259,7 @@ func (state *KrakenPager) loadPage() error {
 	state.gotResponseTotalFieldValue = false
 
 	dec := json.NewDecoder(resp.Body)
+	assert(dec != nil, "json.NewDecoder returned nil")
 	state.currentPageDecoder = dec
 
 	// read open bracket
@@ -224,6 +274,12 @@ func (state *KrakenPager) loadPage() error {
 	state.gotResponseTotalFieldValue = false
 
 	state.seekToResultsListArrayOrEnd()
+
+	if (!state.currentPageInProgress) {
+		// page ended after the first seekToResultsListArrayOrEnd() -- this means we didn't even get an array start
+		return NewKrakenError("Response object was missing the '%s' field", state.resultsListKey)
+	}
+
 	return nil
 }
 
@@ -259,10 +315,15 @@ func (obj *Kraken) PagedKraken(resultsListKey string, pageSize uint, path ...str
 			assert(out.currentPageDecoder != nil, "current page in progress but current page decoder is nil")
 			if !out.currentPageDecoder.More() {
 				// page is empty, verify that total was empty and finish off
-				out.finishPagePostList()
+				finishPageErr := out.finishPagePostList()
+				if finishPageErr != nil {
+					return nil, finishPageErr
+				}
 				totalNumItems := out.responseTotalFieldValue
 				out.cleanupPage()
-				assert(totalNumItems == 0, "got empty first page but _total was non-zero")
+				if totalNumItems != 0 {
+					return nil, NewKrakenError("Response object '_total' was %v but the page was empty", totalNumItems)
+				}
 				out.endOfResults = true
 			}
 		}

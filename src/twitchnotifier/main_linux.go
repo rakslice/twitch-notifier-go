@@ -6,14 +6,12 @@ package main
 import "github.com/dontpanic92/wxGo/wx"
 
 func main() {
-	commonMain()
+	commonMain(nil)
 }
 
 func prefsRelativePath() []string {
 	return []string{}
 }
-
-const shouldDoParse = true
 
 func (win *MainStatusWindowImpl) osNotification(notification *NotificationQueueEntry) {
 	nm := wx.NewNotificationMessage()

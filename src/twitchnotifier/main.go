@@ -84,14 +84,18 @@ func (win *MainStatusWindowImpl) setChannelRefreshInProgress(value bool) {
 	}
 }
 
-func (win *MainStatusWindowImpl) _on_button_quit(e wx.Event) {
-	win.main_obj.log("_on_button_quit")
+func (win *MainStatusWindowImpl) Shutdown() {
 	win.toolbar_icon.RemoveIcon()
 	win.toolbar_icon.Destroy()
 	win.toolbar_icon = nil
 	win.Close()
 	win.app.ExitMainLoop()
 	win.app = nil
+}
+
+func (win *MainStatusWindowImpl) _on_button_quit(e wx.Event) {
+	win.main_obj.log("_on_button_quit")
+	win.Shutdown()
 }
 
 func (win *MainStatusWindowImpl) setStreamInfo(stream *StreamInfo) {
@@ -256,7 +260,7 @@ type MainStatusWindowImpl struct {
 	timeHelper *WxTimeHelper
 }
 
-func InitMainStatusWindowImpl(testMode bool) *MainStatusWindowImpl {
+func InitMainStatusWindowImpl(testMode bool, replacementOptionsFunc func() *Options) *MainStatusWindowImpl {
 	out := &MainStatusWindowImpl{}
 	out.MainStatusWindow = *initMainStatusWindow(out)
 
@@ -284,10 +288,10 @@ func InitMainStatusWindowImpl(testMode bool) *MainStatusWindowImpl {
 	wx.Bind(out, wx.EVT_CLOSE_WINDOW, out._on_close, out.GetId())
 
 	twitch_notifier_main := InitOurTwitchNotifierMain()
-	if shouldDoParse {
+	if replacementOptionsFunc == nil {
 		twitch_notifier_main.options = parse_args()
 	} else {
-		twitch_notifier_main.options = &Options{}
+		twitch_notifier_main.options = replacementOptionsFunc()
 	}
 	twitch_notifier_main.window_impl = out
 	oauth_option := twitch_notifier_main.options.authorization_oauth
@@ -636,6 +640,7 @@ type TwitchNotifierMain struct {
 	options *Options
 	windows_balloon_tip_obj WindowsBalloonTipInterface
 	mainEventsInterface MainEventsInterface
+	queryPageSize uint
 }
 
 func InitTwitchNotifierMain() *TwitchNotifierMain {
@@ -646,6 +651,8 @@ func InitTwitchNotifierMain() *TwitchNotifierMain {
 
 	out.need_channels_refresh = true
 	out._auth_oauth = ""
+	out.queryPageSize = 25
+
 	return out
 }
 
@@ -1060,7 +1067,7 @@ func (app *TwitchNotifierMain) diag_request(parts... string) {
 func (app *TwitchNotifierMain) get_streams_channels_following(followed_channels map[ChannelID]bool) map[ChannelID]StreamChannel {
 	out := map[ChannelID]StreamChannel{}
 
-	pager, err := app.krakenInstance.PagedKraken("streams", 25, "streams", "followed")
+	pager, err := app.krakenInstance.PagedKraken("streams", app.queryPageSize, "streams", "followed")
 	assert(err == nil, "followed request pager failed with %s", err)
 
 	pager.AddParam("stream_type", "live")
@@ -1180,9 +1187,8 @@ func (watcher *ChannelWatcher) next() WaitItem {
 
 		msg("before paged kraken call for follows by user response")
 		resultsListKey := "follows"
-		pageSize := uint(25)
 
-		pager, err := app.krakenInstance.PagedKraken(resultsListKey, pageSize,
+		pager, err := app.krakenInstance.PagedKraken(resultsListKey, app.queryPageSize,
 			"users", *app.options.username, "follows",
 			"channels")
 		msg("after paged kraken call for follows by user response")
@@ -1404,14 +1410,14 @@ func (app *OurTwitchNotifierMain) log(message string) {
 }
 
 
-func commonMain() {
+func commonMain(replacementOptionsFunc func() *Options) {
 
 	// initialize the handlers for all image formats so that wx.Bitmap routines can load all
 	// supported image formats from disk
 	wx.InitAllImageHandlers()
 
 	app := wx.NewApp()
-	frame := InitMainStatusWindowImpl(false)
+	frame := InitMainStatusWindowImpl(false, replacementOptionsFunc)
 	frame.app = app
 	app.SetTopWindow(frame)
 	msg("showing frame")

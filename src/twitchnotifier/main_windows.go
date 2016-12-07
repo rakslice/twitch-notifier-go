@@ -23,11 +23,9 @@ func (win *MainStatusWindowImpl) osNotification(notification *NotificationQueueE
 }
 
 func main() {
-	commonMain()
+	commonMain(nil)
 }
 
 func prefsRelativePath() []string {
 	return []string{}
 }
-
-const shouldDoParse = true

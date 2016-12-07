@@ -17,14 +17,14 @@ func main() {
 	defer logFileHandle.Close()
 	log.SetOutput(io.MultiWriter(os.Stderr, logFileHandle))
 
-	commonMain()
+	commonMain(func() *Options {
+		return &Options{}
+	})
 }
 
 func prefsRelativePath() []string {
 	return []string{"Library", "Preferences"}
 }
-
-const shouldDoParse = false
 
 func (win *MainStatusWindowImpl) osNotification(notification *NotificationQueueEntry) {
 
