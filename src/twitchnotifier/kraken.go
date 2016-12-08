@@ -34,17 +34,22 @@ func (obj *Kraken) addHeader(headerName string, headerValue string) {
 	obj.extraHeaders[headerName] = headerValue
 }
 
+// ERROR STRUCT
+
 type KrakenError struct {
 	msg string
+	statusCode int
 }
 
-func NewKrakenError(format string, args... interface{}) *KrakenError {
-	return &KrakenError{fmt.Sprintf(format, args...)}
+func NewKrakenError(statusCode int, format string, args... interface{}) *KrakenError {
+	return &KrakenError{fmt.Sprintf(format, args...), statusCode}
 }
 
 func (err *KrakenError) Error() string {
 	return err.msg
 }
+
+// PAGER STRUCT
 
 type KrakenPager struct {
 	krakenInstance *Kraken
@@ -93,7 +98,7 @@ func (state *KrakenPager) finishPagePostList() error {
 	}
 
 	if !state.gotResponseTotalFieldValue {
-		return NewKrakenError("Response object was missing the '_total' field")
+		return NewKrakenError(200, "Response object was missing the '_total' field")
 	}
 
 	return nil
@@ -130,7 +135,7 @@ func (state *KrakenPager) Next(val interface{}) error {
 			errMsg = "page did not contain at least one item"
 		}
 		state.cleanupPage()
-		return NewKrakenError(errMsg)
+		return NewKrakenError(200, errMsg)
 	}
 
 	err := dec.Decode(val)
@@ -261,6 +266,12 @@ func (state *KrakenPager) loadPage() error {
 	if err != nil {
 		return err
 	}
+	if resp.StatusCode != 200 {
+		resp.Body.Close()
+		errMsg := fmt.Sprintf("Got HTTP status code %v during page request", resp.StatusCode)
+		return NewKrakenError(resp.StatusCode, errMsg)
+	}
+
 	assert(resp.StatusCode == 200, "got status code %s", resp.StatusCode)
 
 	state.currentPageInProgress = true
@@ -286,7 +297,7 @@ func (state *KrakenPager) loadPage() error {
 
 	if (!state.currentPageInProgress) {
 		// page ended after the first seekToResultsListArrayOrEnd() -- this means we didn't even get an array start
-		return NewKrakenError("Response object was missing the '%s' field", state.resultsListKey)
+		return NewKrakenError(200, "Response object was missing the '%s' field", state.resultsListKey)
 	}
 
 	return nil
@@ -331,7 +342,7 @@ func (obj *Kraken) PagedKraken(resultsListKey string, pageSize uint, path ...str
 				totalNumItems := out.responseTotalFieldValue
 				out.cleanupPage()
 				if totalNumItems != 0 {
-					return nil, NewKrakenError("Response object '_total' was %v but the page was empty", totalNumItems)
+					return nil, NewKrakenError(200, "Response object '_total' was %v but the page was empty", totalNumItems)
 				}
 				out.endOfResults = true
 			}
