@@ -85,7 +85,7 @@ func (browserDialog *BrowserAuthDialog) onNewURLOpen(urlToParse string) {
 This runs the browser auth in a standalone wx.App, shutting it down and running the given
  callback when the auth is done.
  */
-func doBrowserAuth(tokenCallback func(string), debug bool) {
+func doBrowserAuth(tokenCallback func(string), scopes []string, debug bool) {
 	msg("do_browsser newapp")
 	app := wx.NewApp()
 	msg("init browser dialog")
@@ -118,7 +118,7 @@ func doBrowserAuth(tokenCallback func(string), debug bool) {
 	redirectURI := "notifier://main"
 
 	msg("getting auth url")
-	authURL := getAuthURL(CLIENT_ID, redirectURI, []string {}, nil)
+	authURL := getAuthURL(CLIENT_ID, redirectURI, scopes, nil)
 	msg("loading auth url %s", authURL)
 
 	dialog.browser.LoadURL(authURL)

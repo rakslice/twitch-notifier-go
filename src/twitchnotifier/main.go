@@ -649,6 +649,8 @@ func InitTwitchNotifierMain() *TwitchNotifierMain {
 	msg("init kraken")
 	out.krakenInstance = InitKraken()
 
+	out.krakenInstance.addHeader("Accept", "application/vnd.twitchtv.v3+json")
+
 	out.need_channels_refresh = true
 	out._auth_oauth = ""
 	out.queryPageSize = 25
@@ -1396,7 +1398,10 @@ func (app *OurTwitchNotifierMain) main_loop_main_window_timer() {
 func (app *OurTwitchNotifierMain) do_browser_auth() {
 	//debug := app.options.debug_output == nil || *app.options.debug_output
 	debug := true
-	doBrowserAuth(app._auth_complete_callback, debug)
+
+	scopes := []string {"user_read"}  // required for /streams/followed
+
+	doBrowserAuth(app._auth_complete_callback, scopes, debug)
 }
 
 func (app *OurTwitchNotifierMain) _auth_complete_callback(token string) {

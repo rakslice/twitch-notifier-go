@@ -354,8 +354,10 @@ func (obj *Kraken) doAPIRequest(params *url.Values, path []string) (*http.Respon
 	}
 
 	req.Header.Add("Client-ID", CLIENT_ID)
+	msg("Added header Client-ID")
 	for headerName, headerValue := range obj.extraHeaders {
 		req.Header.Add(headerName, headerValue)
+		msg("Added header %s: %s", headerName, headerValue)
 	}
 
 	resp, err := http.DefaultClient.Do(req)
