@@ -313,7 +313,7 @@ func (state *KrakenPager) loadPage() error {
 //    if err != nil {
 //
 //
-func (obj *Kraken) PagedKraken(resultsListKey string, pageSize uint, path ...string) (*KrakenPager, error) {
+func (obj *Kraken) PagedKraken(resultsListKey string, pageSize uint, addParams *url.Values, path ...string) (*KrakenPager, error) {
 
 	out := &KrakenPager{}
 
@@ -324,6 +324,15 @@ func (obj *Kraken) PagedKraken(resultsListKey string, pageSize uint, path ...str
 	out.baseParams = url.Values{}
 
 	out.endOfResults = false
+
+	if addParams != nil {
+		// process these before load so they go into the first request
+		for key, values := range *addParams {
+			for _, value := range values {
+				out.AddParam(key, value)
+			}
+		}
+	}
 
 	// load the first page
 	err := out.loadPage()

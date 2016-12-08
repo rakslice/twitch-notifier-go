@@ -50,7 +50,7 @@ func TestMissingFieldError(t *testing.T) {
 
 	kraken := InitKraken()
 
-	pk, err := kraken.PagedKraken("somethings", 1, "ohai")
+	pk, err := kraken.PagedKraken("somethings", 1, nil, "ohai")
 	if ctx.assertGotErr("Response object was missing the 'somethings' field", err, "PagedKraken()") {return}
 	if ctx.assert(pk == nil, "paged kraken was not nil even through constructor gave error") {return}
 }
@@ -66,7 +66,7 @@ func TestMissingTotalField(t *testing.T) {
 
 	kraken := InitKraken()
 
-	pk, err := kraken.PagedKraken("somethings", 1, "ohai")
+	pk, err := kraken.PagedKraken("somethings", 1, nil, "ohai")
 	if ctx.assertGotErr("Response object was missing the '_total' field", err, "PagedKraken()") {return}
 	if ctx.assert(pk == nil, "paged kraken was not nil even through constructor gave error") {return}
 }
@@ -81,7 +81,7 @@ func TestNoObjects(t *testing.T) {
 
 	kraken := InitKraken()
 
-	pk, err := kraken.PagedKraken("somethings", 1, "ohai")
+	pk, err := kraken.PagedKraken("somethings", 1, nil, "ohai")
 	if ctx.assertNoErr(err, "PagedKraken()") {return}
 	if ctx.assert(pk != nil, "paged kraken was nil even through it should be a no-item iterator") {return}
 
@@ -98,7 +98,7 @@ func TestTotalNonZeroButFirstPageEmpty(t *testing.T) {
 
 	kraken := InitKraken()
 
-	pk, err := kraken.PagedKraken("somethings", 1, "ohai")
+	pk, err := kraken.PagedKraken("somethings", 1, nil, "ohai")
 	if ctx.assertGotErr("Response object '_total' was 42 but the page was empty", err, "PagedKraken()") {return}
 	if ctx.assert(pk == nil, "paged kraken was not nil even through constructor gave error") {return}
 }
@@ -113,7 +113,7 @@ func TestTotalNonZeroButLaterPageEmpty(t *testing.T) {
 
 	kraken := InitKraken()
 
-	pk, err := kraken.PagedKraken("somethings", 1, "ohai")
+	pk, err := kraken.PagedKraken("somethings", 1, nil, "ohai")
 	if ctx.assertNoErr(err, "PagedKraken()") {return}
 	if ctx.assert(pk != nil, "paged kraken was nil even through it should be a working iterator") {return}
 
@@ -148,7 +148,7 @@ func TestHTTPErrorOnInitialPage(t *testing.T) {
 
 	kraken := InitKraken()
 
-	pk, err := kraken.PagedKraken("somethings", 1, "ohai")
+	pk, err := kraken.PagedKraken("somethings", 1, nil, "ohai")
 	if ctx.assertGotErr("Got HTTP status code 500 during page request", err, "PagedKraken()") {return}
 
 	krakenErr, wasKrakenErr := err.(*KrakenError)
@@ -168,7 +168,7 @@ func TestHTTPErrorOnLaterPage(t *testing.T) {
 
 	kraken := InitKraken()
 
-	pk, err := kraken.PagedKraken("somethings", 1, "ohai")
+	pk, err := kraken.PagedKraken("somethings", 1, nil, "ohai")
 	if ctx.assertNoErr(err, "PagedKraken()") {return}
 	if ctx.assert(pk != nil, "Got null PagedKraken even through there was no error") {return}
 

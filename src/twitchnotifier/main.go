@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/user"
+	"net/url"
 )
 
 
@@ -1071,17 +1072,66 @@ func (app *TwitchNotifierMain) diag_request(parts... string) {
 	msg("Output of request %s was %s", url_parts, prettyOutput)
 }
 
-func (app *TwitchNotifierMain) get_streams_channels_following(followed_channels map[ChannelID]bool) map[ChannelID]StreamChannel {
+func (app *TwitchNotifierMain) nextWithRetry(pager *KrakenPager, val interface{}, httpErrorTries uint) error {
+	var err error
+	for httpErrorTries > 0 {
+		err = pager.Next(val)
+		if err != nil {
+			krakenError, wasKrakenError := err.(*KrakenError)
+			if wasKrakenError && krakenError != nil {
+				if krakenError.statusCode != 200 {
+					httpErrorTries -= 1
+					app.getEventsInterface().log(fmt.Sprintf("Got HTTP error %v while loading item; tries left %v", krakenError.statusCode, httpErrorTries))
+					continue
+				}
+			}
+		}
+		break
+	}
+	return err
+}
+
+func (app *TwitchNotifierMain) PagedKrakenWithRetry(httpErrorTries uint, resultsListKey string, pageSize uint, addParams *url.Values, path ...string) (*KrakenPager, error) {
+	var err error
+	var pager *KrakenPager
+	for httpErrorTries > 0 {
+		pager, err = app.krakenInstance.PagedKraken(resultsListKey, pageSize, addParams, path...)
+		if err != nil {
+			krakenError, wasKrakenError := err.(*KrakenError)
+			if wasKrakenError && krakenError != nil {
+				if krakenError.statusCode != 200 {
+					httpErrorTries -= 1
+					app.getEventsInterface().log(fmt.Sprintf("Got HTTP error %v while doing initial pager request; tries left %v", krakenError.statusCode, httpErrorTries))
+					continue
+				}
+			}
+		}
+		break
+	}
+	return pager, err
+}
+
+func (app *TwitchNotifierMain) get_streams_channels_following(followed_channels map[ChannelID]bool) (map[ChannelID]StreamChannel, error) {
 	out := map[ChannelID]StreamChannel{}
 
-	pager, err := app.krakenInstance.PagedKraken("streams", app.queryPageSize, "streams", "followed")
-	assert(err == nil, "followed request pager failed with %s", err)
+	initialRequestHTTPTries := uint(2)
 
-	pager.AddParam("stream_type", "live")
+	additionalParams := make(url.Values)
+	additionalParams.Add("stream_type", "live")
+	pager, err := app.PagedKrakenWithRetry(initialRequestHTTPTries, "streams", app.queryPageSize, &additionalParams, "streams", "followed")
+
+	if err != nil {
+		return out, err
+	}
 
 	for pager.More() {
 		var stream *StreamInfo
-		err = pager.Next(&stream)
+		httpErrorTries := uint(2)
+		err := app.nextWithRetry(pager, &stream, httpErrorTries)
+		if err != nil {
+			return out, err
+		}
+
 		assert(err == nil, "next return error: %s", err)
 		assert(stream != nil, "stream was nil")
 		channel := stream.Channel
@@ -1095,7 +1145,7 @@ func (app *TwitchNotifierMain) get_streams_channels_following(followed_channels 
 		}
 	}
 
-	return out
+	return out, nil
 }
 
 func (app *OurTwitchNotifierMain) _init_notifier() {
@@ -1195,7 +1245,7 @@ func (watcher *ChannelWatcher) next() WaitItem {
 		msg("before paged kraken call for follows by user response")
 		resultsListKey := "follows"
 
-		pager, err := app.krakenInstance.PagedKraken(resultsListKey, app.queryPageSize,
+		pager, err := app.krakenInstance.PagedKraken(resultsListKey, app.queryPageSize, nil,
 			"users", *app.options.username, "follows",
 			"channels")
 		msg("after paged kraken call for follows by user response")
@@ -1247,8 +1297,15 @@ func (watcher *ChannelWatcher) next() WaitItem {
 	log.Println("STUB: lock and idle check implementation")
 
 	// FIXME just fast query implemented for now
-	app.assume_all_streams_offline()
-	channel_stream_iterator := app.get_streams_channels_following(watcher.channels_followed)
+	channel_stream_iterator, streamsError := app.get_streams_channels_following(watcher.channels_followed)
+
+	if streamsError != nil {
+		app.getEventsInterface().log(fmt.Sprintf("Error during update streams follows request: %s", streamsError))
+		app.getEventsInterface().log("Processing any partial update and waiting until the next request time")
+	} else {
+		app.assume_all_streams_offline()
+	}
+
 	for channel_id, channel_stream := range channel_stream_iterator {
 		var channel *ChannelInfo = channel_stream.channel
 		var stream *StreamInfo = channel_stream.stream
