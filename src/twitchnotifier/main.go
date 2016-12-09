@@ -367,6 +367,31 @@ func InitMainStatusWindowImpl(testMode bool, replacementOptionsFunc func() *Opti
 	return out
 }
 
+func showAboutBox() {
+// 	title := "About twitch-notifier-go"
+// 	message := `twitch-notifier-go pre-beta 0.01
+// https://github.com/rakslice/twitch-notifier-go
+
+// A desktop notifier for twitch.tv streams.
+
+// See the accompanying LICENSE file for terms
+// `
+	// wx.MessageBox(message, title)
+
+	info := wx.NewAboutDialogInfo()
+	info.SetName("twitch-notifier-go")	
+	info.SetWebSite("https://github.com/rakslice/twitch-notifier-go")
+
+	info.SetDescription(`A desktop notifier for twitch.tv streams.
+
+See the accompanying LICENSE file for terms
+
+Source code and more information available at the project github site`)
+	info.SetVersion("pre-beta 0.01")
+
+	wx.AboutBox(info)
+}
+
 func fileExists(filename string) bool {
 	_, err := os.Stat(filename)
 	return !os.IsNotExist(err)
@@ -1448,15 +1473,20 @@ func (app *OurTwitchNotifierMain) main_loop_main_window_timer() {
 		msg("do browser auth")
 		app.do_browser_auth()
 	} else {
+		msg("do not need browser auth")
 		app.main_loop_main_window_timer_with_auth()
 	}
+}
+
+func getNeededTwitchScopes() []string {
+	return []string {"user_read"} // required for /streams/followed
 }
 
 func (app *OurTwitchNotifierMain) do_browser_auth() {
 	//debug := app.options.debug_output == nil || *app.options.debug_output
 	debug := true
 
-	scopes := []string {"user_read"}  // required for /streams/followed
+	scopes := getNeededTwitchScopes()
 
 	doBrowserAuth(app._auth_complete_callback, scopes, debug)
 }
@@ -1515,5 +1545,8 @@ func commonMain(replacementOptionsFunc func() *Options) {
 
 	msg("starting main loop")
 	app.MainLoop()
+	msg("main loop complete")
+	wx.DeleteApp(app)
+	msg("wx app deleted")
 	return
 }

@@ -86,10 +86,11 @@ This runs the browser auth in a standalone wx.App, shutting it down and running 
  callback when the auth is done.
  */
 func doBrowserAuth(tokenCallback func(string), scopes []string, debug bool) {
-	msg("do_browsser newapp")
-	app := wx.NewApp()
 	msg("init browser dialog")
 	dialog := InitBrowserAuthDialog(debug)
+
+	tokenWasRetrieved := false
+	var tokenValue string
 
 	dialog.setSchemeCallback("notifier", func(urlFromCall string, parsed *url.URL) {
 		assert(parsed != nil, "no parsed url in callback param")
@@ -101,18 +102,15 @@ func doBrowserAuth(tokenCallback func(string), scopes []string, debug bool) {
 		tokens, gotTokens := qs["access_token"]
 		assert(gotTokens, "No access_token param found in fragment")
 		assert(len(tokens) == 1, "Expected 1 access_token in fragment")
-		token := tokens[0]
+		tokenValue = tokens[0]
+		tokenWasRetrieved = true
 
 		if debug {
 			msg("done - we visisted %s", urlFromCall)
 		}
 
+		msg("dialog close")
 		dialog.Close()
-		app.ExitMainLoop()
-
-		if tokenCallback != nil {
-			tokenCallback(token)
-		}
 	})
 
 	redirectURI := "notifier://main"
@@ -122,10 +120,20 @@ func doBrowserAuth(tokenCallback func(string), scopes []string, debug bool) {
 	msg("loading auth url %s", authURL)
 
 	dialog.browser.LoadURL(authURL)
-	msg("dialog show")
-	dialog.Show()
-	msg("dialog mainloop()")
-	app.MainLoop()
+
+	msg("dialog showmodal")
+	dialog.ShowModal()
+	msg("dialog showmodal returned")
+
+	msg("dialog destroy")
+	dialog.Destroy()
+
+	if tokenWasRetrieved {
+		if tokenCallback != nil {
+			msg("doing token callback")
+			tokenCallback(tokenValue)
+		}		
+	}
 }
 
 func getAuthURL(clientId string, redirectURI string, scopes []string, state *string) string {
