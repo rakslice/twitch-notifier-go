@@ -56,7 +56,7 @@ func TestExactLastPage(t *testing.T) {
 
 	msg("mocking first call to see what streams are up")
 
-	httpmock.RegisterResponder("GET", "https://api.twitch.tv/kraken/streams/followed?limit=1&offset=0",
+	httpmock.RegisterResponder("GET", "https://api.twitch.tv/kraken/streams/followed?limit=1&offset=0&stream_type=live",
 		httpmock.NewStringResponder(200, `{"_total": 1, "streams": [
 			{"channel": {
 				  "id": 123,
@@ -116,7 +116,7 @@ func TestStreamsGoOffline(t *testing.T) {
 
 	msg("mocking first call to see what streams are up")
 
-	httpmock.RegisterResponder("GET", "https://api.twitch.tv/kraken/streams/followed?limit=25&offset=0",
+	httpmock.RegisterResponder("GET", "https://api.twitch.tv/kraken/streams/followed?limit=25&offset=0&stream_type=live",
 		httpmock.NewStringResponder(200, `{"_total": 1, "streams": [
 			{"channel": {
 				  "id": 123,
@@ -145,7 +145,7 @@ func TestStreamsGoOffline(t *testing.T) {
 	msg("mocking a second follow call where the stream has gone offline")
 	httpmock.Reset()
 
-	httpmock.RegisterResponder("GET", "https://api.twitch.tv/kraken/streams/followed?limit=25&offset=0",
+	httpmock.RegisterResponder("GET", "https://api.twitch.tv/kraken/streams/followed?limit=25&offset=0&stream_type=live",
 		httpmock.NewStringResponder(200, `{"_total": 0, "streams": []}`))
 
 	msg("do the next poll right away")
