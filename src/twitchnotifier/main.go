@@ -613,10 +613,14 @@ func (win *MainStatusWindowImpl) _on_toolbar_balloon_click(e wx.Event) {
 	win.set_timeout(250 * time.Millisecond, win._dispense_remaining_notifications)
 }
 
-func (win *MainStatusWindowImpl) _on_toolbar_balloon_timeout(e wx.Event) {
+func (win *MainStatusWindowImpl) notificationFinished() {
 	win.main_obj.log("notification timeout")
 	// ok, on to the next
 	win.set_timeout(250 * time.Millisecond, win._dispense_remaining_notifications)
+}
+
+func (win *MainStatusWindowImpl) _on_toolbar_balloon_timeout(e wx.Event) {
+	win.notificationFinished()
 }
 
 func (win *MainStatusWindowImpl) _on_close(e wx.Event) {

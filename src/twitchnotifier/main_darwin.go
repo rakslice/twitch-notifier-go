@@ -50,6 +50,9 @@ func (win *MainStatusWindowImpl) osNotification(notification *NotificationQueueE
 		msg("notification implementation indicated that the notification for '%s' was not shown: %s", notification.msg, err)
 	}
 
+
+	// there are no callback timeout semantics so call for the next notification right away
+	win.notificationFinished()
 }
 
 func (win *MainStatusWindowImpl) additionalBindings() {

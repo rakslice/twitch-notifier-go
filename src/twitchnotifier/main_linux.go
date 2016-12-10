@@ -26,6 +26,9 @@ func (win *MainStatusWindowImpl) osNotification(notification *NotificationQueueE
 	if !result {
 		msg("wx.NotificationMessage.Show() indicated that the notification for '%s' was not shown", notification.msg)
 	}
+
+	// there are no callback timeout semantics so call for the next notification right away
+	win.notificationFinished()
 }
 
 func (win *MainStatusWindowImpl) additionalBindings() {
