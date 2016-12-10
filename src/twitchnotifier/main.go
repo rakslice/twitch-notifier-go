@@ -25,6 +25,7 @@ import (
 	"os"
 	"os/user"
 	"net/url"
+	//"runtime/debug"
 )
 
 
@@ -86,6 +87,13 @@ func (win *MainStatusWindowImpl) setChannelRefreshInProgress(value bool) {
 }
 
 func (win *MainStatusWindowImpl) Shutdown() {
+	// stop the current batch of notifications if any
+	win.notifications_queue_in_progress = false
+
+	// cancel any timers that are already in flight
+	win.timeHelper.shutdown()
+
+	// shutdown
 	win.toolbar_icon.RemoveIcon()
 	win.toolbar_icon.Destroy()
 	win.toolbar_icon = nil
@@ -422,6 +430,9 @@ type WxTimeHelper struct {
 	next_callback_num_mutex *sync.Mutex
 	callbacks_map           map[int]func()
 	callbacks_map_mutex     *sync.Mutex
+	timer_wrappers_map      map[int]*TimerWrapper
+	timer_wrappers_map_mutex *sync.Mutex
+	hostFrameMutex          *sync.Mutex
 }
 
 var next_wx_event_id int = wx.ID_HIGHEST + 1
@@ -431,7 +442,10 @@ func NewWxTimeHelper(hostFrame wx.Frame) *WxTimeHelper {
 
 	out.next_callback_num_mutex = &sync.Mutex{}
 	out.callbacks_map_mutex = &sync.Mutex{}
+	out.timer_wrappers_map_mutex = &sync.Mutex{}
+	out.hostFrameMutex = &sync.Mutex{}
 	out.callbacks_map = make(map[int]func())
+	out.timer_wrappers_map = make(map[int]*TimerWrapper)
 	// get an event id for this particular WxTimeHelper
 	out.wx_event_id = next_wx_event_id
 	next_wx_event_id += 1
@@ -452,6 +466,7 @@ type TimerWrapper struct {
 }
 
 func (wrapper *TimerWrapper) Stop() {
+	wrapper.helper.pop_timer_wrapper(wrapper.callback_num)
 	wrapper.helper.pop_callback(wrapper.callback_num)
 	wrapper.timer.Stop()
 }
@@ -471,7 +486,18 @@ func (helper *WxTimeHelper) pop_callback(callback_num int) func() {
 	return callback
 }
 
+func (helper *WxTimeHelper) pop_timer_wrapper(callback_num int) *TimerWrapper {
+	helper.timer_wrappers_map_mutex.Lock()
+	timerWrapper, ok := helper.timer_wrappers_map[callback_num]
+	if ok {
+		delete(helper.timer_wrappers_map, callback_num)
+	}
+	helper.timer_wrappers_map_mutex.Unlock()
+	return timerWrapper
+}
+
 func (helper *WxTimeHelper) on_thread_event(e wx.Event) {
+	msg("on_thread_event")
 	// get the callback num from the thread event
 	threadEvent := wx.ToThreadEvent(e)
 	callback_num := threadEvent.GetInt()
@@ -506,6 +532,9 @@ func (helper *WxTimeHelper) AfterFunc(duration time.Duration, callback func()) *
 	helper.callbacks_map[callback_num] = callback
 	helper.callbacks_map_mutex.Unlock()
 
+	//msg("timer for callback %v setup %s", callback_num, callback)
+	//debug.PrintStack()
+
 	// Do the real AfterFunc call with a callback that sets up an event to do the wrapper callback
 
 	//msg("before delay for callback %s", callback_num)
@@ -515,16 +544,80 @@ func (helper *WxTimeHelper) AfterFunc(duration time.Duration, callback func()) *
 	})
 	//msg("after calling real AfterFunc")
 
-	return &TimerWrapper{timer, callback_num, helper}
+	timerWrapper := &TimerWrapper{timer, callback_num, helper}
+
+	helper.timer_wrappers_map_mutex.Lock()
+	helper.timer_wrappers_map[callback_num] = timerWrapper
+	helper.timer_wrappers_map_mutex.Unlock()
+
+	return timerWrapper
+}
+
+func (helper *WxTimeHelper) shutdown() {
+	helper.stopAll()
+	helper.hostFrameMutex.Lock()
+	helper.hostFrame = nil
+	helper.hostFrameMutex.Unlock()
+}
+
+func (helper *WxTimeHelper) stopAll() {
+	msg("Stopping all timers")
+	for {
+		gotItem := false
+		var curTimerWrapper *TimerWrapper
+		helper.timer_wrappers_map_mutex.Lock()
+		for _, timerWrapper := range helper.timer_wrappers_map {
+			gotItem = true
+			curTimerWrapper = timerWrapper
+			break
+		}
+		helper.timer_wrappers_map_mutex.Unlock()
+		if gotItem {
+			//helper.callbacks_map_mutex.Lock()
+			//callback, callbackOk := helper.callbacks_map[curTimerWrapper.callback_num]
+			//helper.callbacks_map_mutex.Unlock()
+			//
+			//if callbackOk {
+			//	msg("Stopping timer %d callback %s", curTimerWrapper.callback_num, callback)
+			//}
+			curTimerWrapper.Stop()
+		} else {
+			// we're all done
+			break;
+		}
+	}
+
+	// We also want to prevent any callbacks for timers that have already made it
+	// to the event queue
+	helper.hostFrameMutex.Lock()
+	hostFrame := helper.hostFrame
+	helper.hostFrameMutex.Unlock()
+
+	if hostFrame != nil {
+		hostFrame.DeletePendingEvents()
+	}
+	// TODO if we add support to the timer wrappers for tracking & cancelling the queue events,
+	// the DeletePendingEvents() call won't be necessary.
 }
 
 func (helper *WxTimeHelper) on_call_complete(callback_num int) {
 	// This method gets called in a thread other than the wx main thread, so it must only set up some thread events and cannot call into the GUI directly
 
-	//msg("timer for callback %s complete", callback_num)
+	// we're done with this timer wrapper as stopping its timer won't do anything anymore
+	helper.pop_timer_wrapper(callback_num)
+	// TODO instead of that, have the timerWrapper keep track of the QueueEvent and cancel
+	// it if stopped
+
+	msg("timer for callback %v complete", callback_num)
 	threadEvent := wx.NewThreadEvent(wx.EVT_THREAD, helper.wx_event_id)
 	threadEvent.SetInt(callback_num)
-	helper.hostFrame.QueueEvent(threadEvent)
+
+	helper.hostFrameMutex.Lock()
+	hostFrame := helper.hostFrame
+	helper.hostFrameMutex.Unlock()
+	if hostFrame != nil {
+		hostFrame.QueueEvent(threadEvent)
+	}
 }
 
 // TIME RELATED STUFF IN GUI FRAME
@@ -610,17 +703,23 @@ func (win *MainStatusWindowImpl) _on_toolbar_balloon_click(e wx.Event) {
 			win.main_obj.log(fmt.Sprintf("Balloon click callback returned error: %s", err))
 		}
 	}
-	win.set_timeout(250 * time.Millisecond, win._dispense_remaining_notifications)
+	win.notificationFinished()
 }
 
 func (win *MainStatusWindowImpl) notificationFinished() {
+	if win.notifications_queue_in_progress {
+		// ok, on to the next
+		win.set_timeout(250 * time.Millisecond, win._dispense_remaining_notifications)
+	}
+}
+
+func (win *MainStatusWindowImpl) notificationTimeout() {
 	win.main_obj.log("notification timeout")
-	// ok, on to the next
-	win.set_timeout(250 * time.Millisecond, win._dispense_remaining_notifications)
+	win.notificationFinished()
 }
 
 func (win *MainStatusWindowImpl) _on_toolbar_balloon_timeout(e wx.Event) {
-	win.notificationFinished()
+	win.notificationTimeout()
 }
 
 func (win *MainStatusWindowImpl) _on_close(e wx.Event) {
@@ -1549,8 +1648,10 @@ func commonMain(replacementOptionsFunc func() *Options) {
 
 	msg("starting main loop")
 	app.MainLoop()
-	msg("main loop complete")
-	wx.DeleteApp(app)
-	msg("wx app deleted")
-	return
+	msg("main loop stopped")
+	msg("destroying window")
+	frame.Destroy()
+	//msg("deleting app")
+	//wx.DeleteApp(app)
+	//msg("wx app deleted")
 }

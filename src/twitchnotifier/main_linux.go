@@ -28,7 +28,7 @@ func (win *MainStatusWindowImpl) osNotification(notification *NotificationQueueE
 	}
 
 	// there are no callback timeout semantics so call for the next notification right away
-	win.notificationFinished()
+	win.notificationTimeout()
 }
 
 func (win *MainStatusWindowImpl) additionalBindings() {
