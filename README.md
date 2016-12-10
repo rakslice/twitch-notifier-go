@@ -2,7 +2,7 @@
 
 Windows: [![Build status](https://ci.appveyor.com/api/projects/status/wdd0jhu4gobdy83a?svg=true)](https://ci.appveyor.com/project/rakslice/twitch-notifier-go) Linux: [![Travis CI Build Status](https://travis-ci.org/rakslice/twitch-notifier-go.svg)](https://travis-ci.org/rakslice/twitch-notifier-go)
 
-A quick golang port of my python twitch notifier.  Works on Windows; Linux support in progress.
+A quick golang port of my python twitch notifier.  Works on Windows; Works on Mac; Linux support in progress.
 
 [Visit my twitch-notifier blog for daily build downloads and more frequently updated info.
 ](https://twitch-notifier.blogspot.ca/)
