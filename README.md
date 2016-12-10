@@ -2,10 +2,10 @@
 
 Windows: [![Build status](https://ci.appveyor.com/api/projects/status/wdd0jhu4gobdy83a?svg=true)](https://ci.appveyor.com/project/rakslice/twitch-notifier-go) Linux: [![Travis CI Build Status](https://travis-ci.org/rakslice/twitch-notifier-go.svg)](https://travis-ci.org/rakslice/twitch-notifier-go)
 
-[**Grab a zip of the last successful Windows build here!**](https://ci.appveyor.com/api/projects/rakslice/twitch-notifier-go/artifacts/twitch-notifier-go.zip) 
-[**Grab a zip of a Mac test build here!**](https://dl.dropboxusercontent.com/u/131501/twitch-notifier-go-mac-2016-12-09.zip)
-
 A quick golang port of my python twitch notifier.  Works on Windows; Linux support in progress.
+
+[Visit my twitch-notifier blog for daily build downloads and more frequently updated info.
+](https://twitch-notifier.blogspot.ca/)
 
 This is past the proof-of-concept stage, and is usable for getting notifications, but doesn't have all the features of my Python twitch-notifier yet, and is certainly a work in progress.
 
@@ -16,6 +16,10 @@ Run the built twitchnotifier.exe file with command line options.
 You'll need to pass `-auth-oauth` with a token you can get from [https://twitchapps.com/tmi/](https://twitchapps.com/tmi/), as the wx wrapper I'm using doesn't support the wxHTML stuff that the python version uses to do the the Twitch OAuth login.
 
 Also the slow channel stream checking used by the username-only mode in the python client isn't ported yet so there's no way around passing the OAuth token at the moment. 
+
+## Future Plans
+
+See [twitch-notifier-go black hole for tasks on Trello](https://trello.com/b/1kPOevw9/twitch-notifier-go-black-hole-for-tasks)
 
 ## Options
 
