@@ -1,21 +1,23 @@
-
 // +build darwin
 
 package main
 
 import (
-	"os"
-	"log"
 	"io"
+	"log"
+	"os"
+	"path"
+
 	"github.com/deckarep/gosx-notifier"
 	"github.com/dontpanic92/wxGo/wx"
+	"github.com/kardianos/osext"
 )
 
 func main() {
 	// open a log file
 	// TODO write this same log file on all platforms, using an appropriate log file location
 	logFilename := userRelativePath("Library", "Logs", "twitch-notifier-go.log")
-	logFileHandle, err := os.OpenFile(logFilename, os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	logFileHandle, err := os.OpenFile(logFilename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	assert(err == nil, "Error opening log file: %s", err)
 	defer logFileHandle.Close()
 	log.SetOutput(io.MultiWriter(os.Stderr, logFileHandle))
@@ -34,14 +36,16 @@ func (win *MainStatusWindowImpl) osNotification(notification *NotificationQueueE
 	assert(notification != nil, "called with null notification queue entry")
 
 	note := gosxnotifier.NewNotification(notification.msg)
-	
+
 	note.Title = notification.title
 
 	note.Sound = gosxnotifier.Basso
 
 	note.Sender = "twitch-notifier-go"
 
-	note.AppIcon = _get_asset_icon_filename()
+	iconFilename, _ := _get_asset_icon_info()
+
+	note.AppIcon = iconFilename
 
 	note.Link = notification.url
 
@@ -49,7 +53,6 @@ func (win *MainStatusWindowImpl) osNotification(notification *NotificationQueueE
 	if err != nil {
 		msg("notification implementation indicated that the notification for '%s' was not shown: %s", notification.msg, err)
 	}
-
 
 	// there are no callback timeout semantics so call for the next notification right away
 	win.notificationTimeout()
@@ -121,3 +124,14 @@ func (win *MainStatusWindowImpl) onMenuAbout(e wx.Event) {
 // 	wx.MessageBox("not implemented yet")
 // }
 
+func _get_asset_icon_info() (string, int) {
+	subpath := "icon.ico"
+	bitmap_type := wx.BITMAP_TYPE_ICO
+
+	// TODO use wx.StandardPaths.GetResourcesDir() once it's available
+	exeDir, err := osext.ExecutableFolder()
+	assert(err == nil, "ExecutableFolder failed: %s", err)
+	assets_path := path.Join(exeDir, "..", "Resources")
+	bitmap_path := path.Join(assets_path, subpath)
+	return bitmap_path, bitmap_type
+}

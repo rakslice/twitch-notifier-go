@@ -1,4 +1,3 @@
-
 // +build windows
 
 package main
@@ -28,4 +27,8 @@ func main() {
 
 func prefsRelativePath() []string {
 	return []string{}
+}
+
+func _get_asset_icon_info() (string, int) {
+	return _get_asset_icon_info_common()
 }

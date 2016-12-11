@@ -19,5 +19,5 @@ echo -n 'APPL????' > twitch-notifier-go.app/Contents/PkgInfo
 # Icon
 # - convert icon to icns
 sips -s format icns src/twitchnotifier/assets/icon.ico --out twitch-notifier-go.app/Contents/Resources/icon.icns
-
-
+# - also copy the windows icon file as wxWidgets can open that
+cp src/twitchnotifier/assets/icon.ico twitch-notifier-go.app/Contents/Resources/

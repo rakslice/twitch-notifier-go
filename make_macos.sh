@@ -22,7 +22,6 @@ ifrm ~/Library/Logs/twitch-notifier-go.log
 rm -rf twitch-notifier-go-mac
 mkdir twitch-notifier-go-mac
 cp -R twitch-notifier-go.app twitch-notifier-go-mac/
-cp -R src/twitchnotifier/assets twitch-notifier-go-mac/
 cp LICENSE README.md twitch-notifier-go-mac/
 
 ifrm twitch-notifier-go-mac.zip

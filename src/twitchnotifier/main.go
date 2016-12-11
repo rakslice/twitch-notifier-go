@@ -727,22 +727,23 @@ func (win *MainStatusWindowImpl) _on_close(e wx.Event) {
 
 // ICON HELPER FUNCTIONS
 
-func _get_asset_icon_filename() string {
+func _get_asset_icon_info_common() (string, int) {
 	subpath := "icon.ico"
+	bitmap_type := wx.BITMAP_TYPE_ICO
 	script_path, err := filepath.Abs(".")
 	assert(err == nil, "icon path failed: %s", err)
 	assets_path := path.Join(script_path, "assets")
 	bitmap_path := path.Join(assets_path, subpath)
-	return bitmap_path
+	return bitmap_path, bitmap_type
 }
 
 func (win *MainStatusWindowImpl) _get_asset_icon() wx.Icon {
 	icon := wx.NullIcon
-	bitmap_path := _get_asset_icon_filename()
+	bitmap_path, bitmap_type := _get_asset_icon_info()
 
 	_, statErr := os.Stat(bitmap_path)
 	if !os.IsNotExist(statErr) {
-		loaded_bitmap := wx.NewBitmap(bitmap_path, wx.BITMAP_TYPE_ICO)
+		loaded_bitmap := wx.NewBitmap(bitmap_path, bitmap_type)
 		if loaded_bitmap.IsOk() {
 			icon.CopyFromBitmap(loaded_bitmap)
 		}
