@@ -1,18 +1,60 @@
-
 package main
 
 import (
 	"testing"
-	"github.com/jarcoal/httpmock"
+	"time"
+
 	"github.com/dontpanic92/wxGo/wx"
+	"github.com/jarcoal/httpmock"
 )
 
-func commonTestStart() *MainStatusWindowImpl {
-	// initialize the handlers for all image formats so that wx.Bitmap routines can load all
-	// supported image formats from disk
-	wx.InitAllImageHandlers()
+// Until we get the issues with app deletion sorted out, let's just reuse
+// the same app instance for all the tests
+var commonAppForTests wx.App
+var appInitialized bool
 
-	app := wx.NewApp()
+type guiTestFuncType func(*testing.T, *MainStatusWindowImpl, func())
+
+func commonGuiTestAsync(t *testing.T, testFunc guiTestFuncType) {
+	frame := commonTestStart()
+
+	// set up the test func to run, and then run main loop until the
+	// done callback happens
+	app := frame.app
+
+	frame.set_timeout(0, func() {
+		// run the test fun...
+		testFunc(t, frame, func() {
+			// and when it's done stop the main loop
+			app.ExitMainLoop()
+		})
+
+	})
+
+	msg("starting test mainloop")
+	app.MainLoop()
+	msg("ending test mainloop")
+
+	msg("frame Shutdown")
+	frame.Shutdown()
+	msg("frame Destroy")
+	frame.Destroy()
+}
+
+func commonTestStart() *MainStatusWindowImpl {
+	preApp()
+
+	if !appInitialized {
+		appInitialized = true
+		msg("initializing app")
+		commonAppForTests = wx.NewApp()
+		msg("app initialized")
+	} else {
+		msg("app already initialized")
+	}
+
+	app := commonAppForTests
+
 	frame := InitMainStatusWindowImpl(true, func() *Options {
 		return &Options{}
 	})
@@ -23,11 +65,32 @@ func commonTestStart() *MainStatusWindowImpl {
 	return frame
 }
 
+func commonTestEnd(frame *MainStatusWindowImpl) {
+	// let's try running the main loop for a little bit
+	app := frame.app
+
+	frame.set_timeout(500*time.Millisecond, func() {
+		app.ExitMainLoop()
+	})
+
+	msg("starting test mainloop")
+	app.MainLoop()
+	msg("ending test mainloop")
+
+	msg("frame Shutdown")
+	frame.Shutdown()
+	msg("frame Destroy")
+	frame.Destroy()
+}
+
 func TestExactLastPage(t *testing.T) {
+	commonGuiTestAsync(t, guiTestExactLastPage)
+}
+
+func guiTestExactLastPage(t *testing.T, frame *MainStatusWindowImpl, testDoneCallback func()) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
-	frame := commonTestStart()
 	fake_oauth_token := "fakeoauth123"
 	msg("setting mock oauth token: %s", fake_oauth_token)
 	frame.main_obj.options.authorization_oauth = &fake_oauth_token
@@ -82,14 +145,16 @@ func TestExactLastPage(t *testing.T) {
 	assertEqual(1, streams_online, "streams online")
 	assertEqual(0, streams_offline, "streams offline")
 
-	frame.Shutdown()
+	testDoneCallback()
 }
 
 func TestStreamsGoOffline(t *testing.T) {
+	commonGuiTestAsync(t, guiTestStreamsGoOffline)
+}
+
+func guiTestStreamsGoOffline(t *testing.T, frame *MainStatusWindowImpl, testDoneCallback func()) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
-
-	frame := commonTestStart()
 
 	fake_oauth_token := "fakeoauth123"
 	msg("setting mock oauth token: %s", fake_oauth_token)
@@ -158,7 +223,7 @@ func TestStreamsGoOffline(t *testing.T) {
 	assertEqual(0, streams_online, "streams online")
 	assertEqual(1, streams_offline, "streams offline")
 
-	frame.Shutdown()
+	testDoneCallback()
 }
 
 func assertEqual(expectedValue uint, actualValue uint, desc string) {

@@ -1621,12 +1621,19 @@ func (app *OurTwitchNotifierMain) log(message string) {
 	//msg("after log")
 }
 
+var imageHandlersInitialized bool
+
+func preApp() {
+	if !imageHandlersInitialized {
+		imageHandlersInitialized = true
+		// initialize the handlers for all image formats so that wx.Bitmap routines can load all
+		// supported image formats from disk
+		wx.InitAllImageHandlers()
+	}
+}
 
 func commonMain(replacementOptionsFunc func() *Options) {
-
-	// initialize the handlers for all image formats so that wx.Bitmap routines can load all
-	// supported image formats from disk
-	wx.InitAllImageHandlers()
+	preApp()
 
 	app := wx.NewApp()
 
