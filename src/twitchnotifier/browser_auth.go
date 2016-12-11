@@ -26,7 +26,8 @@ type BrowserAuthDialog struct {
 func InitBrowserAuthDialog(debug bool) *BrowserAuthDialog {
 	out := &BrowserAuthDialog{}
 	msg("before newdialog")
-	out.Dialog = wx.NewDialog(wx.NullWindow, wx.ID_ANY, "twitch-notifier")
+	out.Dialog = wx.NewDialog(wx.NullWindow, wx.ID_ANY, "twitch-notifier login",
+		wx.DefaultPosition, wx.DefaultSize, wx.DEFAULT_DIALOG_STYLE&^wx.CLOSE_BOX)
 	msg("after newdialog")
 	out.debug = debug
 	out.lastCallbackURL = ""
