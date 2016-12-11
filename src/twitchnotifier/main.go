@@ -1454,9 +1454,9 @@ func (watcher *ChannelWatcher) next() WaitItem {
 			//msg("channel %s is offline", channel_name)
 			if stream == nil {
 
-				app.getEventsInterface().log(fmt.Sprintf("channel_id %s had stream null", channel_id))
+				app.getEventsInterface().log(fmt.Sprintf("channel_id %v had stream null", channel_id))
 			} else {
-				app.getEventsInterface().log(fmt.Sprintf("channel_id %s is_playlist %s", channel_id, stream.Is_playlist))
+				app.getEventsInterface().log(fmt.Sprintf("channel_id %v is_playlist %v", channel_id, stream.Is_playlist))
 			}
 			_, ok := watcher.last_streams[channel_id]
 			if ok {
