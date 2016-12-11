@@ -3,33 +3,32 @@ package main
 //#cgo windows LDFLAGS: -static-libgcc -static-libstdc++ -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic
 import "C"
 
-
 import (
-	"fmt"
-	"log"
-	"github.com/dontpanic92/wxGo/wx"
-	"github.com/tomcatzh/asynchttpclient"
-	"flag"
-	"sync"
-	"time"
-	"path/filepath"
-	"path"
-	"runtime"
-	"os/exec"
-	"strings"
 	"encoding/json"
-	"sort"
-	"net/http"
+	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
-	"os/user"
+	"log"
+	"net/http"
 	"net/url"
+	"os"
+	"os/exec"
+	"os/user"
+	"path"
+	"path/filepath"
+	"runtime"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/dontpanic92/wxGo/wx"
+	"github.com/tomcatzh/asynchttpclient"
 	//"runtime/debug"
 )
 
-
-func assert(condition bool, message string, a... interface{}) {
+func assert(condition bool, message string, a ...interface{}) {
 	if !condition {
 		formatted := fmt.Sprintf(message, a...)
 		msg("assertion failure: %s", formatted)
@@ -108,7 +107,7 @@ func (win *MainStatusWindowImpl) _on_button_quit(e wx.Event) {
 }
 
 func (win *MainStatusWindowImpl) setStreamInfo(stream *StreamInfo) {
-	for _, label := range []wx.StaticText {win.label_head_game, win.label_head_started, win.label_head_up} {
+	for _, label := range []wx.StaticText{win.label_head_game, win.label_head_started, win.label_head_up} {
 		label.Show()
 		label.Refresh()
 	}
@@ -123,7 +122,7 @@ func (win *MainStatusWindowImpl) setStreamInfo(stream *StreamInfo) {
 	createdAtStr := stream.Created_at
 	win.label_start_time.SetLabel(createdAtStr)
 	startTime, err := convert_rfc3339_time(createdAtStr)
-	if (err != nil) {
+	if err != nil {
 		win.main_obj.log(fmt.Sprintf("Error parsing time '%s': %s", createdAtStr, err))
 		win.label_uptime.SetLabel("")
 	} else {
@@ -132,11 +131,11 @@ func (win *MainStatusWindowImpl) setStreamInfo(stream *StreamInfo) {
 }
 
 func (win *MainStatusWindowImpl) clearStreamInfo() {
-	for _, variableLabel := range []wx.StaticText {win.label_game, win.label_uptime, win.label_start_time} {
+	for _, variableLabel := range []wx.StaticText{win.label_game, win.label_uptime, win.label_start_time} {
 		variableLabel.SetLabel("")
 	}
 
-	for _, fixedLabel := range []wx.StaticText {win.label_head_game, win.label_head_started, win.label_head_up} {
+	for _, fixedLabel := range []wx.StaticText{win.label_head_game, win.label_head_started, win.label_head_up} {
 		fixedLabel.Hide()
 	}
 }
@@ -197,7 +196,7 @@ func (win *MainStatusWindowImpl) showInfo(channel *ChannelInfo, stream *StreamIn
 		win.label_channel_status.SetLabel(channel.Status)
 	}
 
-	if stream != nil  {
+	if stream != nil {
 		win.setStreamInfo(stream)
 	} else {
 		win.clearStreamInfo()
@@ -239,9 +238,9 @@ func (win *MainStatusWindowImpl) showInfo(channel *ChannelInfo, stream *StreamIn
 // own notification queue.
 type NotificationQueueEntry struct {
 	callback func() error
-	title string
-	msg string
-	url string
+	title    string
+	msg      string
+	url      string
 }
 
 // CONCRETE WINDOW DEFINITION AND CONSTRUCTOR
@@ -250,12 +249,12 @@ type NotificationQueueEntry struct {
 MainStatusWindowImpl embeds MainStatusWindow, the GUI skeleton that comes from code generation,
 and implements t
 
- */
+*/
 type MainStatusWindowImpl struct {
 	MainStatusWindow
-	app wx.App
-	main_obj *OurTwitchNotifierMain
-	toolbar_icon wx.TaskBarIcon
+	app                    wx.App
+	main_obj               *OurTwitchNotifierMain
+	toolbar_icon           wx.TaskBarIcon
 	balloon_click_callback func() error
 
 	// notifications waiting to go on the screen behind the currently shown notification
@@ -263,7 +262,7 @@ type MainStatusWindowImpl struct {
 	// whether there is currently a batch of notifications being shown
 	notifications_queue_in_progress bool
 
-	timer *TimerWrapper
+	timer          *TimerWrapper
 	timer_callback func()
 
 	timeHelper *WxTimeHelper
@@ -376,18 +375,18 @@ func InitMainStatusWindowImpl(testMode bool, replacementOptionsFunc func() *Opti
 }
 
 func showAboutBox() {
-// 	title := "About twitch-notifier-go"
-// 	message := `twitch-notifier-go pre-beta 0.01
-// https://github.com/rakslice/twitch-notifier-go
+	// 	title := "About twitch-notifier-go"
+	// 	message := `twitch-notifier-go pre-beta 0.01
+	// https://github.com/rakslice/twitch-notifier-go
 
-// A desktop notifier for twitch.tv streams.
+	// A desktop notifier for twitch.tv streams.
 
-// See the accompanying LICENSE file for terms
-// `
+	// See the accompanying LICENSE file for terms
+	// `
 	// wx.MessageBox(message, title)
 
 	info := wx.NewAboutDialogInfo()
-	info.SetName("twitch-notifier-go")	
+	info.SetName("twitch-notifier-go")
 	info.SetWebSite("https://github.com/rakslice/twitch-notifier-go")
 
 	info.SetDescription(`A desktop notifier for twitch.tv streams.
@@ -412,7 +411,7 @@ func userRelativePath(parts ...string) string {
 
 	newParts := append([]string{curUser.HomeDir}, parts...)
 
-	logFilename := path.Join(newParts...)	
+	logFilename := path.Join(newParts...)
 	return logFilename
 }
 
@@ -424,15 +423,15 @@ func getTokenFilename() string {
 // TIME HELPER STUFF
 
 type WxTimeHelper struct {
-	hostFrame               wx.Frame
-	wx_event_id             int
-	next_callback_num       int
-	next_callback_num_mutex *sync.Mutex
-	callbacks_map           map[int]func()
-	callbacks_map_mutex     *sync.Mutex
-	timer_wrappers_map      map[int]*TimerWrapper
+	hostFrame                wx.Frame
+	wx_event_id              int
+	next_callback_num        int
+	next_callback_num_mutex  *sync.Mutex
+	callbacks_map            map[int]func()
+	callbacks_map_mutex      *sync.Mutex
+	timer_wrappers_map       map[int]*TimerWrapper
 	timer_wrappers_map_mutex *sync.Mutex
-	hostFrameMutex          *sync.Mutex
+	hostFrameMutex           *sync.Mutex
 }
 
 var next_wx_event_id int = wx.ID_HIGHEST + 1
@@ -460,9 +459,9 @@ func NewWxTimeHelper(hostFrame wx.Frame) *WxTimeHelper {
 }
 
 type TimerWrapper struct {
-	timer *time.Timer
+	timer        *time.Timer
 	callback_num int
-	helper *WxTimeHelper
+	helper       *WxTimeHelper
 }
 
 func (wrapper *TimerWrapper) Stop() {
@@ -518,7 +517,7 @@ way of a wx.ThreadingEvent.
 
 This approach is based on the wxGo threadevent example:
 https://github.com/dontpanic92/wxGo/blob/master/examples/src/threadevent/main.go
- */
+*/
 func (helper *WxTimeHelper) AfterFunc(duration time.Duration, callback func()) *TimerWrapper {
 	// get a callback num and file the callback
 
@@ -583,7 +582,7 @@ func (helper *WxTimeHelper) stopAll() {
 			curTimerWrapper.Stop()
 		} else {
 			// we're all done
-			break;
+			break
 		}
 	}
 
@@ -634,7 +633,7 @@ func (win *MainStatusWindowImpl) set_timer_with_callback(length time.Duration, c
 }
 
 func (win *MainStatusWindowImpl) cancel_timer_callback_immediate() bool {
-	if (win.timer == nil) {
+	if win.timer == nil {
 		return false
 	}
 	win.timer.Stop()
@@ -699,7 +698,7 @@ func (win *MainStatusWindowImpl) _on_toolbar_balloon_click(e wx.Event) {
 	win.main_obj.log("notification clicked")
 	if win.balloon_click_callback != nil {
 		err := win.balloon_click_callback()
-		if (err != nil) {
+		if err != nil {
 			win.main_obj.log(fmt.Sprintf("Balloon click callback returned error: %s", err))
 		}
 	}
@@ -709,7 +708,7 @@ func (win *MainStatusWindowImpl) _on_toolbar_balloon_click(e wx.Event) {
 func (win *MainStatusWindowImpl) notificationFinished() {
 	if win.notifications_queue_in_progress {
 		// ok, on to the next
-		win.set_timeout(250 * time.Millisecond, win._dispense_remaining_notifications)
+		win.set_timeout(250*time.Millisecond, win._dispense_remaining_notifications)
 	}
 }
 
@@ -751,7 +750,7 @@ func (win *MainStatusWindowImpl) _get_asset_icon() wx.Icon {
 
 	if !icon.IsOk() {
 		// just set the icon to a solid color
-		solidBitmap := win.emptyBitmap(wx.NewSize(16,16), wx.NewColour(byte(72), byte(0), byte(0)))
+		solidBitmap := win.emptyBitmap(wx.NewSize(16, 16), wx.NewColour(byte(72), byte(0), byte(0)))
 		assert(solidBitmap.IsOk(), "error creating solid bitmap")
 		icon.CopyFromBitmap(solidBitmap)
 		assert(icon.IsOk(), "icon copied from bitmap is not ok")
@@ -763,13 +762,13 @@ func (win *MainStatusWindowImpl) _get_asset_icon() wx.Icon {
 // BASE APP CLASS
 
 type TwitchNotifierMain struct {
-	need_channels_refresh bool
-	_auth_oauth string
-	krakenInstance *Kraken
-	options *Options
+	need_channels_refresh   bool
+	_auth_oauth             string
+	krakenInstance          *Kraken
+	options                 *Options
 	windows_balloon_tip_obj WindowsBalloonTipInterface
-	mainEventsInterface MainEventsInterface
-	queryPageSize uint
+	mainEventsInterface     MainEventsInterface
+	queryPageSize           uint
 }
 
 func InitTwitchNotifierMain() *TwitchNotifierMain {
@@ -787,7 +786,6 @@ func InitTwitchNotifierMain() *TwitchNotifierMain {
 	return out
 }
 
-
 func (app *TwitchNotifierMain) need_browser_auth() bool {
 	msg("options.no_browser_auth %s", app.options.no_browser_auth)
 	if app.options.no_browser_auth != nil {
@@ -797,7 +795,7 @@ func (app *TwitchNotifierMain) need_browser_auth() bool {
 	return (app.options.no_browser_auth == nil || !*app.options.no_browser_auth) && app._auth_oauth == ""
 }
 
-func msg(format string, a... interface{}) {
+func msg(format string, a ...interface{}) {
 	message := fmt.Sprintf(format, a...)
 	log.Println(message)
 	//wx.MessageBox(message)
@@ -807,7 +805,7 @@ func msg(format string, a... interface{}) {
 type StreamInfo struct {
 	Channel     *ChannelInfo
 	Is_playlist bool
-	Id          StreamID	`json:"_id"`
+	Id          StreamID `json:"_id"`
 	Created_at  string
 	Game        *string
 }
@@ -817,17 +815,17 @@ const CLIENT_ID = "pkvo0qdzjzxeapwpf8bfogx050n4bn8"
 // COMMAND LINE OPTIONS STUFF
 
 type Options struct {
-	username *string
-	no_browser_auth *bool
-	poll *int
-	all *bool
-	idle *int
-	unlock_notify *bool
-	debug_output *bool
+	username            *string
+	no_browser_auth     *bool
+	poll                *int
+	all                 *bool
+	idle                *int
+	unlock_notify       *bool
+	debug_output        *bool
 	authorization_oauth *string
-	ui *bool
-	no_popups *bool
-	help *bool
+	ui                  *bool
+	no_popups           *bool
+	help                *bool
 }
 
 func parse_args() *Options {
@@ -856,16 +854,16 @@ type StreamID float64
 
 // Info about a channel
 type ChannelInfo struct {
-	Id           ChannelID	`json:"_id"`
+	Id           ChannelID `json:"_id"`
 	Display_Name string
 	Url          string
 	Status       string
 	// URL of the channel logo, if any
-	Logo         *string
+	Logo *string
 }
 
 type StreamChannel struct {
-	stream *StreamInfo
+	stream  *StreamInfo
 	channel *ChannelInfo
 }
 
@@ -951,7 +949,7 @@ func (app *OurTwitchNotifierMain) _channels_reload_complete() {
 
 /**
 This is called when a channel has gone online or offline
- */
+*/
 func (app *OurTwitchNotifierMain) stream_state_change(channel_id ChannelID, new_online bool, stream *StreamInfo) {
 	msg("stream state change for channel %v", uint64(channel_id))
 	val, ok := app.previously_online_streams[channel_id]
@@ -996,7 +994,6 @@ func (app *OurTwitchNotifierMain) stream_state_change(channel_id ChannelID, new_
 	}
 }
 
-
 func (app *OurTwitchNotifierMain) done_state_changes() {
 	msg("done state_change - figure out follows")
 	// when we're only using the follows API, we we won't see another channel info when a stream goes offline
@@ -1033,7 +1030,7 @@ func (app *OurTwitchNotifierMain) doDelayedUrlLoad(ctx string, url string, callb
 
 type ChannelStatus struct {
 	online bool
-	idx uint
+	idx    uint
 }
 
 func (app *TwitchNotifierMain) channel_display_name(channel *ChannelInfo) string {
@@ -1118,9 +1115,9 @@ func convert_rfc3339_time(rfc3339_time string) (time.Time, error) {
 // Convert time.Duration to hours/mins string
 func time_desc(elapsed time.Duration) string {
 	if elapsed.Hours() >= 1 {
-		return fmt.Sprintf("%d h %02d m", elapsed / time.Hour, (elapsed / time.Minute) % 60)
+		return fmt.Sprintf("%d h %02d m", elapsed/time.Hour, (elapsed/time.Minute)%60)
 	} else {
-		return fmt.Sprintf("%d min", elapsed / time.Minute)
+		return fmt.Sprintf("%d min", elapsed/time.Minute)
 	}
 }
 
@@ -1149,7 +1146,7 @@ func (app *TwitchNotifierMain) notify_for_stream(channel_name string, stream *St
 	callback := NotificationCallback{channel_name, stream_browser_link}
 
 	popupsEnabled := true
-	if (app.options.no_popups != nil) {
+	if app.options.no_popups != nil {
 		popupsEnabled = !*app.options.no_popups
 	}
 
@@ -1162,7 +1159,6 @@ func (app *TwitchNotifierMain) notify_for_stream(channel_name string, stream *St
 type WindowsBalloonTipInterface interface {
 	balloon_tip(title string, message string, callback NotificationCallback, url string)
 }
-
 
 type OurWindowsBalloonTip struct {
 	main_window *MainStatusWindowImpl
@@ -1187,7 +1183,7 @@ func (callback NotificationCallback) callback() error {
 	return nil
 }
 
-func (app *TwitchNotifierMain) diag_request(parts... string) {
+func (app *TwitchNotifierMain) diag_request(parts ...string) {
 	/** Do an API call and just pretty print the response contents */
 	url_parts := strings.Join(parts, "/")
 	msg("diag request for %s", url_parts)
@@ -1286,10 +1282,10 @@ func (app *OurTwitchNotifierMain) _notifier_fini() {
 }
 
 type ChannelWatcher struct {
-	app *OurTwitchNotifierMain
+	app               *OurTwitchNotifierMain
 	channels_followed map[ChannelID]bool
-	channel_info map[ChannelID]*ChannelInfo
-	last_streams map[ChannelID]StreamID
+	channel_info      map[ChannelID]*ChannelInfo
+	last_streams      map[ChannelID]StreamID
 
 	channels_followed_names []string
 }
@@ -1311,7 +1307,7 @@ func (watcher *ChannelWatcher) next() WaitItem {
 	   makes the calls to stuff in watcher.app to update followed stream details, and then
 	   returns a token with info about the pause before the next poll so the caller can
 	   sleep and/or schedule the next call
-	 */
+	*/
 
 	app := watcher.app
 	if app.need_channels_refresh {
@@ -1341,8 +1337,8 @@ func (watcher *ChannelWatcher) next() WaitItem {
 			if app.options.username == nil || *app.options.username == "" {
 				var root_response struct {
 					Token struct {
-						      User_Name string
-					      }
+						User_Name string
+					}
 				}
 				//app.diag_request()
 				msg("before kraken call for username")
@@ -1460,7 +1456,7 @@ func (watcher *ChannelWatcher) next() WaitItem {
 
 				app.getEventsInterface().log(fmt.Sprintf("channel_id %s had stream null", channel_id))
 			} else {
-				app.getEventsInterface().log(fmt.Sprintf("channel_id  %s is_playlist %s", channel_id, stream.Is_playlist))
+				app.getEventsInterface().log(fmt.Sprintf("channel_id %s is_playlist %s", channel_id, stream.Is_playlist))
 			}
 			_, ok := watcher.last_streams[channel_id]
 			if ok {
@@ -1478,7 +1474,7 @@ func (watcher *ChannelWatcher) next() WaitItem {
 	} else {
 		sleep_until_next_poll_s = *app.options.poll
 	}
-	
+
 	if sleep_until_next_poll_s < 60 {
 		sleep_until_next_poll_s = 60
 	}
@@ -1515,14 +1511,14 @@ type WaitItem struct {
 // Extends TwitchNotifierMain to provide channel lists and stream info needed for the GUI
 type OurTwitchNotifierMain struct {
 	TwitchNotifierMain
-	window_impl *MainStatusWindowImpl
-	main_loop_iter *ChannelWatcher
-	followed_channel_entries []*ChannelInfo
-	channel_status_by_id map[ChannelID]*ChannelStatus
+	window_impl               *MainStatusWindowImpl
+	main_loop_iter            *ChannelWatcher
+	followed_channel_entries  []*ChannelInfo
+	channel_status_by_id      map[ChannelID]*ChannelStatus
 	previously_online_streams map[ChannelID]bool
-	stream_by_channel_id map[ChannelID]*StreamInfo
-	asynchttpclient *asynchttpclient.Client
-	need_relayout bool
+	stream_by_channel_id      map[ChannelID]*StreamInfo
+	asynchttpclient           *asynchttpclient.Client
+	need_relayout             bool
 }
 
 func InitOurTwitchNotifierMain() *OurTwitchNotifierMain {
@@ -1582,7 +1578,7 @@ func (app *OurTwitchNotifierMain) main_loop_main_window_timer() {
 }
 
 func getNeededTwitchScopes() []string {
-	return []string {"user_read"} // required for /streams/followed
+	return []string{"user_read"} // required for /streams/followed
 }
 
 func (app *OurTwitchNotifierMain) do_browser_auth() {
