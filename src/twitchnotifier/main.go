@@ -481,7 +481,10 @@ func (helper *WxTimeHelper) pop_callback(callback_num int) func() {
 		delete(helper.callbacks_map, callback_num)
 	}
 	helper.callbacks_map_mutex.Unlock()
-	assert(ok, "error retrieving callback for WxTimeWrapper callback num %s", callback_num)
+	if !ok {
+		msg("error retrieving callback for WxTimeWrapper callback num %s", callback_num)
+		return nil
+	}
 	return callback
 }
 
@@ -492,7 +495,11 @@ func (helper *WxTimeHelper) pop_timer_wrapper(callback_num int) *TimerWrapper {
 		delete(helper.timer_wrappers_map, callback_num)
 	}
 	helper.timer_wrappers_map_mutex.Unlock()
-	return timerWrapper
+	if ok {
+		return timerWrapper
+	} else {
+		return nil
+	}
 }
 
 func (helper *WxTimeHelper) on_thread_event(e wx.Event) {
