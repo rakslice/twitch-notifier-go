@@ -10,8 +10,8 @@ import (
 
 // Until we get the issues with app deletion sorted out, let's just reuse
 // the same app instance for all the tests
-var commonAppForTests wx.App
-var appInitialized bool
+var commonAppForTests wx.App = nil
+var appInitialized bool = false
 
 type guiTestFuncType func(*testing.T, *MainStatusWindowImpl, func())
 

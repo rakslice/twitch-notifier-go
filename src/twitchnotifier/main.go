@@ -1629,7 +1629,7 @@ func (app *OurTwitchNotifierMain) log(message string) {
 	//msg("after log")
 }
 
-var imageHandlersInitialized bool
+var imageHandlersInitialized bool = false
 
 func preApp() {
 	if !imageHandlersInitialized {
