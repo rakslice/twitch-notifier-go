@@ -11,11 +11,9 @@ This is past the proof-of-concept stage, and is usable for getting notifications
 
 ## Usage
 
-Run the built twitchnotifier.exe file with command line options.
+Run the app, do a web login to Twitch when prompted. You can then close the main window if you like and leave the app running to get notifications.  To bring the main window up again, double-click the system tray icon (Windows) or use the Show GUI menu item (Mac.
 
-You'll need to pass `-auth-oauth` with a token you can get from [https://twitchapps.com/tmi/](https://twitchapps.com/tmi/), as the wx wrapper I'm using doesn't support the wxHTML stuff that the python version uses to do the the Twitch OAuth login.
-
-Also the slow channel stream checking used by the username-only mode in the python client isn't ported yet so there's no way around passing the OAuth token at the moment. 
+Unlike the python version, which has a username-only mode that looks at a user's public follows and doesn't require a login, twitch-notifier-go doesn't yet have a way around logging in or passing the OAuth token on the command line at the moment. 
 
 ## Future Plans
 

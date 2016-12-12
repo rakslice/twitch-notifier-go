@@ -303,7 +303,7 @@ func (state *KrakenPager) loadPage() error {
 	return nil
 }
 
-// PagedKraken is an iterator for calling APIs that provide lists of items using page semantics.
+// PagedKraken is an iterator for calling APIs that provide access to a larger list using offset/limit semantics.
 //
 // Use this with APIs that take offset and limit GET parameters and
 // respond with a JSON object that has a _total field and an arbitrarily-named field with an
