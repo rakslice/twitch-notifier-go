@@ -65,24 +65,6 @@ func commonTestStart() *MainStatusWindowImpl {
 	return frame
 }
 
-func commonTestEnd(frame *MainStatusWindowImpl) {
-	// let's try running the main loop for a little bit
-	app := frame.app
-
-	frame.set_timeout(500*time.Millisecond, func() {
-		app.ExitMainLoop()
-	})
-
-	msg("starting test mainloop")
-	app.MainLoop()
-	msg("ending test mainloop")
-
-	msg("frame Shutdown")
-	frame.Shutdown()
-	msg("frame Destroy")
-	frame.Destroy()
-}
-
 func TestExactLastPage(t *testing.T) {
 	commonGuiTestAsync(t, guiTestExactLastPage)
 }
