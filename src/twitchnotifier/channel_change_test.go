@@ -2,7 +2,6 @@ package main
 
 import (
 	"testing"
-	"time"
 
 	"github.com/dontpanic92/wxGo/wx"
 	"github.com/jarcoal/httpmock"
