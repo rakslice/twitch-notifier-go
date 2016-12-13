@@ -120,12 +120,14 @@ func (win *MainStatusWindowImpl) setStreamInfo(stream *StreamInfo) {
 	}
 
 	createdAtStr := stream.Created_at
-	win.label_start_time.SetLabel(createdAtStr)
 	startTime, err := convert_rfc3339_time(createdAtStr)
 	if err != nil {
 		win.main_obj.log(fmt.Sprintf("Error parsing time '%s': %s", createdAtStr, err))
+		win.label_start_time.SetLabel(createdAtStr)
 		win.label_uptime.SetLabel("")
 	} else {
+		localStartTime := startTime.Local()
+		win.label_start_time.SetLabel(localStartTime.Format(time.RFC1123))
 		win.label_uptime.SetLabel(time_desc(time.Now().Sub(startTime)))
 	}
 }
