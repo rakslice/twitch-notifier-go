@@ -1345,7 +1345,6 @@ func (watcher *ChannelWatcher) next() WaitItem {
 		app.need_channels_refresh = false
 		watcher.channels_followed = make(map[ChannelID]bool)
 		watcher.channel_info = make(map[ChannelID]*ChannelInfo)
-		watcher.last_streams = make(map[ChannelID]StreamID)
 		watcher.channels_followed_names = []string{}
 
 		// first time querying
