@@ -836,6 +836,7 @@ type Options struct {
 	ui                  *bool
 	no_popups           *bool
 	help                *bool
+	reload_time_interval_mins *uint
 }
 
 func parse_args() *Options {
@@ -851,6 +852,7 @@ func parse_args() *Options {
 	options.ui = flag.Bool("ui", false, "Use the wxpython UI")
 	options.no_popups = flag.Bool("no-popups", false, "Don't do popups, for when using just the UI")
 	options.help = flag.Bool("help", false, "Show usage")
+	options.reload_time_interval_mins = flag.Uint("reload-time-interval", 60, "Number of minutes between automatic channel reloads")
 	msg("before flag parse")
 	flag.Parse()
 	msg("after flag parse")
@@ -1312,17 +1314,34 @@ func (app *OurTwitchNotifierMain) NewChannelWatcher() *ChannelWatcher {
 }
 
 func (watcher *ChannelWatcher) next() WaitItem {
-
-	/* This does one API poll, potentially loading the user's list of followed channels first,
-	   makes the calls to stuff in watcher.app to update followed stream details, and then
+	/* This method does one API poll, potentially loading the user's list of followed channels
+	   first, makes the calls to stuff in watcher.app to update followed stream details, and then
 	   returns a token with info about the pause before the next poll so the caller can
 	   sleep and/or schedule the next call
 	*/
 
+	// check if it's time to do a channel reload
+	curTime := time.Now()
+	elapsedSinceLastRefresh := curTime.Sub(watcher.app.lastReloadTime)
+	msg("%0.2f seconds since last refresh", elapsedSinceLastRefresh.Seconds())
 	app := watcher.app
-	if app.need_channels_refresh {
 
+	var reloadTimeInterval time.Duration
+	if (app.options.reload_time_interval_mins != nil) {
+		reloadTimeInterval = time.Duration(*app.options.reload_time_interval_mins)*time.Minute
+	} else {
+		reloadTimeInterval = 10*time.Minute
+	}
+	msg("%0.2f seconds between autorefreshes", reloadTimeInterval.Seconds())
+	if elapsedSinceLastRefresh >= reloadTimeInterval {
+		app.need_channels_refresh = true
+		msg("doing scheduled refresh")
+	}
+
+	// do channel reload if necessary
+	if app.need_channels_refresh {
 		msg("doing a refresh")
+		watcher.app.lastReloadTime = curTime
 		app.need_channels_refresh = false
 		watcher.channels_followed = make(map[ChannelID]bool)
 		watcher.channel_info = make(map[ChannelID]*ChannelInfo)
@@ -1529,6 +1548,7 @@ type OurTwitchNotifierMain struct {
 	stream_by_channel_id      map[ChannelID]*StreamInfo
 	asynchttpclient           *asynchttpclient.Client
 	need_relayout             bool
+	lastReloadTime            time.Time
 }
 
 func InitOurTwitchNotifierMain() *OurTwitchNotifierMain {
@@ -1542,6 +1562,7 @@ func InitOurTwitchNotifierMain() *OurTwitchNotifierMain {
 	out.asynchttpclient = &asynchttpclient.Client{}
 	out.asynchttpclient.Concurrency = 3
 	out.need_relayout = false
+	out.lastReloadTime = time.Now()
 	return out
 }
 
