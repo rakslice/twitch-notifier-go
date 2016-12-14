@@ -28,7 +28,7 @@ build_script:
 
     go generate -x
 
-    cd ..
+    cd ..\..
 
     go get -v -t -x .\\...
 
