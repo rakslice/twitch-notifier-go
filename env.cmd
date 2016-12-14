@@ -1,4 +1,4 @@
 set GOPATH="%~dp0..\twitch-notifier-gopath";"%~dp0..\twitch-notifier-go"
 rem set PATH=%PATH%;c:\MinGW\bin
-set PATH=%PATH%;C:\Program Files\mingw-w64\x86_64-6.2.0-posix-seh-rt_v5-rev1\mingw64\bin
+set PATH=%PATH%;C:\Program Files\mingw-w64\x86_64-6.2.0-posix-seh-rt_v5-rev1\mingw64\bin;%~dp0..\twitch-notifier-gopath\bin
 cmd

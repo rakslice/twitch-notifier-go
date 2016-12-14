@@ -1,4 +1,9 @@
+//go:generate goversioninfo -icon=assets/icon.ico -64
+
 // +build windows
+
+// To install goversioninfo, do:
+//   go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
 
 package main
 
