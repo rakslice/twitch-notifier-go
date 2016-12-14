@@ -22,6 +22,10 @@ build_script:
 
     cd %APPVEYOR_BUILD_FOLDER%
 
+    go get -x github.com/josephspurrier/goversioninfo/cmd/goversioninfo
+
+    go generate -x
+
     go get -v -t -x .\\...
 
 after_build:
