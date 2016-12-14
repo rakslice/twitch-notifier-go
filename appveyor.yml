@@ -24,7 +24,7 @@ build_script:
 
     go get -x github.com/josephspurrier/goversioninfo/cmd/goversioninfo
 
-    go generate -x
+    go generate -x twitchnotifier
 
     go get -v -t -x .\\...
 
