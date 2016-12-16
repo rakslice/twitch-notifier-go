@@ -36,9 +36,6 @@ after_build:
   - 7z a twitch-notifier-go.zip c:\project\bin\twitchnotifier.exe
   - 7z a twitch-notifier-go.zip %APPVEYOR_BUILD_FOLDER%\README.md
   - 7z a twitch-notifier-go.zip %APPVEYOR_BUILD_FOLDER%\LICENSE
-  - mkdir assets
-  - copy %APPVEYOR_BUILD_FOLDER%\src\twitchnotifier\assets\*.* assets
-  - 7z a twitch-notifier-go.zip assets\*.*
 
 artifacts:
   - path: twitch-notifier-go.zip
