@@ -1,4 +1,5 @@
-//go:generate goversioninfo -icon=assets/icon.ico -64
+//go:generate goversioninfo  -64
+//go:generate windres -i icon.rc -O coff -o icon.syso
 
 // +build windows
 
@@ -35,5 +36,7 @@ func prefsRelativePath() []string {
 }
 
 func _get_asset_icon_info() (string, int) {
-	return _get_asset_icon_info_common()
+	subpath := "IDI_ICON_ICO"
+	bitmap_type := wx.BITMAP_TYPE_ICO_RESOURCE
+	return subpath, bitmap_type
 }

@@ -750,15 +750,21 @@ func (win *MainStatusWindowImpl) _get_asset_icon() wx.Icon {
 	icon := wx.NullIcon
 	bitmap_path, bitmap_type := _get_asset_icon_info()
 
-	_, statErr := os.Stat(bitmap_path)
-	if !os.IsNotExist(statErr) {
-		loaded_bitmap := wx.NewBitmap(bitmap_path, bitmap_type)
-		if loaded_bitmap.IsOk() {
-			icon.CopyFromBitmap(loaded_bitmap)
-		}
+	var exists bool
+	if bitmap_type == wx.BITMAP_TYPE_ICO_RESOURCE {
+		exists = true
+	} else {
+		_, statErr := os.Stat(bitmap_path)
+		exists = !os.IsNotExist(statErr)
+	}
+
+	if exists {
+		icon = wx.NewIcon(bitmap_path, bitmap_type)
 	}
 
 	if !icon.IsOk() {
+		msg("Error loading asset icon from %s", bitmap_path)
+
 		// just set the icon to a solid color
 		solidBitmap := win.emptyBitmap(wx.NewSize(16, 16), wx.NewColour(byte(72), byte(0), byte(0)))
 		assert(solidBitmap.IsOk(), "error creating solid bitmap")
