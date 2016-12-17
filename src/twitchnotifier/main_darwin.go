@@ -65,64 +65,9 @@ func (win *MainStatusWindowImpl) additionalBindings() {
 	//wx.Bind(win.toolbar_icon, wx.EVT_NOTIFICATION_MESSAGE_CLICK, win._on_toolbar_balloon_click, wx.ID_ANY)
 	//wx.Bind(win.toolbar_icon, wx.EVT_NOTIFICATION_MESSAGE_DISMISSED, win._on_toolbar_balloon_timeout, wx.ID_ANY)
 
-	menuBar := wx.NewMenuBar()
-	menu := wx.NewMenu()
-
-	// NB: we bind these items to the menubar as platform implementations will move them to different menus
-
-	showGuiItem := menu.Append(wx.ID_ANY, "Show GUI\tCtrl-G")
-	wx.Bind(menuBar, wx.EVT_MENU, win.onMenuShowGUI, showGuiItem.GetId())
-
-	hideGuiItem := menu.Append(wx.ID_ANY, "Hide GUI\tCtrl-W")
-	wx.Bind(menuBar, wx.EVT_MENU, win.onMenuHideGUI, hideGuiItem.GetId())
-
-	aboutItem := menu.Append(wx.ID_ABOUT, "About twitch-notifier-go")
-	assert(aboutItem.GetId() == wx.ID_ABOUT, "expected about item to have GetId() of ID_ABOUT")
-	wx.Bind(menuBar, wx.EVT_MENU, win.onMenuAbout, aboutItem.GetId())
-
-	reloadChannelsItem := menu.Append(wx.ID_ANY, "Reload Channels\tCtrl-R")
-	wx.Bind(menuBar, wx.EVT_MENU, win.onMenuReloadChannels, reloadChannelsItem.GetId())
-
-	// for future use:
-	// menu.Append(wx.ID_HELP, "Help")
-	// menu.Append(wx.ID_PREFERENCES, "Preferences")
-	// wx.Bind(menuBar, wx.EVT_MENU, win.onMenuPrefs, wx.ID_PREFERENCES)
-	menu.Append(wx.ID_EXIT, "Quit twitch-notifier-go")
-
-	menuBar.Append(menu, "Info")
-
-	// On other platforms:
-	// win.SetMenuBar(menuBar)
-
+	menuBar := win.createMenuBar()
 	wx.MenuBarMacSetCommonMenuBar(menuBar)
-
 }
-
-func (win *MainStatusWindowImpl) onMenuShowGUI(e wx.Event) {
-	msg("onMenuShowGUI")
-	win._on_toolbar_icon_left_dclick(e)
-}
-
-func (win *MainStatusWindowImpl) onMenuHideGUI(e wx.Event) {
-	msg("onMenuHideGUI")
-	win.Hide()
-}
-
-func (win *MainStatusWindowImpl) onMenuReloadChannels(e wx.Event) {
-	msg("onMenuReloadChannels")
-	win.main_obj.doChannelsReload()
-}
-
-func (win *MainStatusWindowImpl) onMenuAbout(e wx.Event) {
-	msg("onMenuAbout")
-	showAboutBox()
-}
-
-// For future use:
-// func (win *MainStatusWindowImpl) onMenuPrefs(e wx.Event) {
-// 	msg("onMenuPrefs")
-// 	wx.MessageBox("not implemented yet")
-// }
 
 func _get_asset_icon_info() (string, int) {
 	subpath := "icon.ico"
