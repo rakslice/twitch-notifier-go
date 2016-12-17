@@ -36,7 +36,7 @@ addons:
       - vnc4server
 
 install:
-  - travis_wait go get -x -t ./...
+  - travis_wait 30 go get -x -t ./...
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then Xvnc :1 &            fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export DISPLAY=:1 ;  fi
 
