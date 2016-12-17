@@ -37,7 +37,7 @@ func (win *MainStatusWindowImpl) additionalBindings() {
 	//wx.Bind(win.toolbar_icon, wx.EVT_NOTIFICATION_MESSAGE_CLICK, win._on_toolbar_balloon_click, wx.ID_ANY)
 	//wx.Bind(win.toolbar_icon, wx.EVT_NOTIFICATION_MESSAGE_DISMISSED, win._on_toolbar_balloon_timeout, wx.ID_ANY)
 
-	win.createMenuBar()
+	win.createMenuBar(true)
 }
 
 func _get_asset_icon_info() (string, int) {

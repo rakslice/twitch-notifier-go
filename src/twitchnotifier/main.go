@@ -1695,14 +1695,16 @@ func commonMain(replacementOptionsFunc func() *Options) {
 	//msg("wx app deleted")
 }
 
-func (win *MainStatusWindowImpl) createMenuBar() wx.MenuBar {
+func (win *MainStatusWindowImpl) createMenuBar(menuInAppWindow bool) wx.MenuBar {
 	menuBar := wx.NewMenuBar()
 	menu := wx.NewMenu()
 
 	// NB: we bind these items to the menubar as platform implementations will move them to different menus
 
-	showGuiItem := menu.Append(wx.ID_ANY, "Show GUI\tCtrl-G")
-	wx.Bind(menuBar, wx.EVT_MENU, win.onMenuShowGUI, showGuiItem.GetId())
+	if !menuInAppWindow {
+		showGuiItem := menu.Append(wx.ID_ANY, "Show GUI\tCtrl-G")
+		wx.Bind(menuBar, wx.EVT_MENU, win.onMenuShowGUI, showGuiItem.GetId())
+	}
 
 	hideGuiItem := menu.Append(wx.ID_ANY, "Hide GUI\tCtrl-W")
 	wx.Bind(menuBar, wx.EVT_MENU, win.onMenuHideGUI, hideGuiItem.GetId())
@@ -1722,8 +1724,9 @@ func (win *MainStatusWindowImpl) createMenuBar() wx.MenuBar {
 
 	menuBar.Append(menu, "Info")
 
-	// On relevant platforms:
-	win.SetMenuBar(menuBar)
+	if menuInAppWindow {
+		win.SetMenuBar(menuBar)
+	}
 
 	return menuBar
 }
