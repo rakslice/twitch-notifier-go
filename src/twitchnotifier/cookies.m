@@ -1,3 +1,4 @@
+// +build darwin
 
 #import <Foundation/Foundation.h>
 
