@@ -2,25 +2,26 @@ package main
 
 /**
 Use a wx.Dialog with a wx.WebView to do an OAuth login to twitch.tv
- */
+*/
 
 import (
 	"net/url"
-	"github.com/dontpanic92/wxGo/wx"
 	"strings"
+
+	"github.com/dontpanic92/wxGo/wx"
 )
 
 type BrowserAuthDialogCallback func(string, *url.URL)
 
 type BrowserAuthDialog struct {
 	wx.Dialog
-	sizer               wx.BoxSizer
-	browser             wx.WebView
-	debug               bool
+	sizer   wx.BoxSizer
+	browser wx.WebView
+	debug   bool
 
 	callbacksForSchemes map[string]BrowserAuthDialogCallback
 
-	lastCallbackURL     string
+	lastCallbackURL string
 }
 
 func InitBrowserAuthDialog(debug bool) *BrowserAuthDialog {
@@ -28,6 +29,7 @@ func InitBrowserAuthDialog(debug bool) *BrowserAuthDialog {
 	msg("before newdialog")
 	out.Dialog = wx.NewDialog(wx.NullWindow, wx.ID_ANY, "twitch-notifier login",
 		wx.DefaultPosition, wx.DefaultSize, wx.DEFAULT_DIALOG_STYLE&^wx.CLOSE_BOX)
+
 	msg("after newdialog")
 	out.debug = debug
 	out.lastCallbackURL = ""
@@ -85,7 +87,7 @@ func (browserDialog *BrowserAuthDialog) onNewURLOpen(urlToParse string) {
 /**
 This runs the browser auth in a standalone wx.App, shutting it down and running the given
  callback when the auth is done.
- */
+*/
 func doBrowserAuth(tokenCallback func(string), scopes []string, debug bool) {
 	msg("init browser dialog")
 	dialog := InitBrowserAuthDialog(debug)
@@ -133,7 +135,7 @@ func doBrowserAuth(tokenCallback func(string), scopes []string, debug bool) {
 		if tokenCallback != nil {
 			msg("doing token callback")
 			tokenCallback(tokenValue)
-		}		
+		}
 	}
 }
 
