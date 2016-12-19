@@ -13,6 +13,14 @@ import (
 	"github.com/kardianos/osext"
 )
 
+/*
+#cgo CFLAGS: -x objective-c
+#cgo LDFLAGS: -framework Foundation
+
+void clearOSXWebkitTwitchCookies();
+*/
+import "C"
+
 func main() {
 	// open a log file
 	// TODO write this same log file on all platforms, using an appropriate log file location
@@ -67,6 +75,16 @@ func (win *MainStatusWindowImpl) additionalBindings() {
 
 	menuBar := win.createMenuBar(false)
 	wx.MenuBarMacSetCommonMenuBar(menuBar)
+
+	menu := menuBar.GetMenu(0)
+	clearCookiesItem := menu.Append(wx.ID_ANY, "Quit With Logout")
+	wx.Bind(menuBar, wx.EVT_MENU, win.onClearCookiesMenu, clearCookiesItem.GetId())
+}
+
+func (win *MainStatusWindowImpl) onClearCookiesMenu(e wx.Event) {
+	msg("onClearCookiesMenu")
+	C.clearOSXWebkitTwitchCookies()
+	win.Shutdown()
 }
 
 func _get_asset_icon_info() (string, int) {
