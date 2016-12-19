@@ -1653,7 +1653,7 @@ func (app *OurTwitchNotifierMain) main_loop_main_window_timer_with_auth() {
 func (app *OurTwitchNotifierMain) log(message string) {
 	line_item := fmt.Sprintf("%v: %s", time.Now(), message)
 	msg("In log function, appending: %s", line_item)
-	app.window_impl.list_log.Append(line_item)
+	app.window_impl.list_log.Insert(line_item, uint(0))
 	//msg("after log")
 }
 
