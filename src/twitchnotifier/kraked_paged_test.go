@@ -1,9 +1,8 @@
-
 package main
 
 import (
-	"testing"
 	"github.com/jarcoal/httpmock"
+	"testing"
 )
 
 // TEST CONTEXT TO PROVIDE CUSTOM ASSERT METHODS ON THE TEST CLASS
@@ -17,7 +16,9 @@ func Ctx(t *testing.T) *TestContext {
 }
 
 func (ctx *TestContext) assertGotErr(expectedMsg string, err error, desc string) bool {
-	if ctx.assert(err != nil, "In %s, expected error message '%s' but got no error", desc, expectedMsg) {return true}
+	if ctx.assert(err != nil, "In %s, expected error message '%s' but got no error", desc, expectedMsg) {
+		return true
+	}
 	actualMessage := err.Error()
 	return ctx.assert(actualMessage == expectedMsg, "In %s, expected error messge '%s' but got error message '%s'", desc, expectedMsg, actualMessage)
 }
@@ -29,7 +30,7 @@ func (ctx *TestContext) assertNoErr(err error, desc string) bool {
 	return false
 }
 
-func (ctx *TestContext) assert(cond bool, fmt string, args... interface{}) bool {
+func (ctx *TestContext) assert(cond bool, fmt string, args ...interface{}) bool {
 	if !cond {
 		ctx.t.Errorf(fmt, args...)
 		return true
@@ -51,10 +52,13 @@ func TestMissingFieldError(t *testing.T) {
 	kraken := InitKraken()
 
 	pk, err := kraken.PagedKraken("somethings", 1, nil, "ohai")
-	if ctx.assertGotErr("Response object was missing the 'somethings' field", err, "PagedKraken()") {return}
-	if ctx.assert(pk == nil, "paged kraken was not nil even through constructor gave error") {return}
+	if ctx.assertGotErr("Response object was missing the 'somethings' field", err, "PagedKraken()") {
+		return
+	}
+	if ctx.assert(pk == nil, "paged kraken was not nil even through constructor gave error") {
+		return
+	}
 }
-
 
 func TestMissingTotalField(t *testing.T) {
 	ctx := Ctx(t)
@@ -67,8 +71,12 @@ func TestMissingTotalField(t *testing.T) {
 	kraken := InitKraken()
 
 	pk, err := kraken.PagedKraken("somethings", 1, nil, "ohai")
-	if ctx.assertGotErr("Response object was missing the '_total' field", err, "PagedKraken()") {return}
-	if ctx.assert(pk == nil, "paged kraken was not nil even through constructor gave error") {return}
+	if ctx.assertGotErr("Response object was missing the '_total' field", err, "PagedKraken()") {
+		return
+	}
+	if ctx.assert(pk == nil, "paged kraken was not nil even through constructor gave error") {
+		return
+	}
 }
 
 func TestNoObjects(t *testing.T) {
@@ -82,10 +90,16 @@ func TestNoObjects(t *testing.T) {
 	kraken := InitKraken()
 
 	pk, err := kraken.PagedKraken("somethings", 1, nil, "ohai")
-	if ctx.assertNoErr(err, "PagedKraken()") {return}
-	if ctx.assert(pk != nil, "paged kraken was nil even through it should be a no-item iterator") {return}
+	if ctx.assertNoErr(err, "PagedKraken()") {
+		return
+	}
+	if ctx.assert(pk != nil, "paged kraken was nil even through it should be a no-item iterator") {
+		return
+	}
 
-	if ctx.assert(!pk.More(), "even through there are no items, pk.More() was true") {return}
+	if ctx.assert(!pk.More(), "even through there are no items, pk.More() was true") {
+		return
+	}
 }
 
 func TestTotalNonZeroButFirstPageEmpty(t *testing.T) {
@@ -99,8 +113,12 @@ func TestTotalNonZeroButFirstPageEmpty(t *testing.T) {
 	kraken := InitKraken()
 
 	pk, err := kraken.PagedKraken("somethings", 1, nil, "ohai")
-	if ctx.assertGotErr("Response object '_total' was 42 but the page was empty", err, "PagedKraken()") {return}
-	if ctx.assert(pk == nil, "paged kraken was not nil even through constructor gave error") {return}
+	if ctx.assertGotErr("Response object '_total' was 42 but the page was empty", err, "PagedKraken()") {
+		return
+	}
+	if ctx.assert(pk == nil, "paged kraken was not nil even through constructor gave error") {
+		return
+	}
 }
 
 func TestTotalNonZeroButLaterPageEmpty(t *testing.T) {
@@ -114,28 +132,42 @@ func TestTotalNonZeroButLaterPageEmpty(t *testing.T) {
 	kraken := InitKraken()
 
 	pk, err := kraken.PagedKraken("somethings", 1, nil, "ohai")
-	if ctx.assertNoErr(err, "PagedKraken()") {return}
-	if ctx.assert(pk != nil, "paged kraken was nil even through it should be a working iterator") {return}
+	if ctx.assertNoErr(err, "PagedKraken()") {
+		return
+	}
+	if ctx.assert(pk != nil, "paged kraken was nil even through it should be a working iterator") {
+		return
+	}
 
 	var actualVal string
 
-	if ctx.assert(pk.More(), "expected more items at start but there are no more") {return}
+	if ctx.assert(pk.More(), "expected more items at start but there are no more") {
+		return
+	}
 
 	nextErr := pk.Next(&actualVal)
 
-	if ctx.assertNoErr(nextErr, "first Next() call") {return}
-	if ctx.assert(actualVal == "meat popsicle", "Next() did not produce the first iterator value") {return}
+	if ctx.assertNoErr(nextErr, "first Next() call") {
+		return
+	}
+	if ctx.assert(actualVal == "meat popsicle", "Next() did not produce the first iterator value") {
+		return
+	}
 
 	httpmock.Reset()
 
-	if ctx.assert(pk.More(), "expected more items after first page but there are no more") {return}
+	if ctx.assert(pk.More(), "expected more items after first page but there are no more") {
+		return
+	}
 
 	httpmock.RegisterResponder("GET", "https://api.twitch.tv/kraken/ohai?limit=1&offset=1",
 		httpmock.NewStringResponder(200, `{"somethings": [], "_total": 42}`))
 
 	err = pk.Next(&actualVal)
 
-	if ctx.assertGotErr("Response object '_total' was 42 but the page was empty", err, "PagedKraken()") {return}
+	if ctx.assertGotErr("Response object '_total' was 42 but the page was empty", err, "PagedKraken()") {
+		return
+	}
 }
 
 func TestHTTPErrorOnInitialPage(t *testing.T) {
@@ -149,13 +181,21 @@ func TestHTTPErrorOnInitialPage(t *testing.T) {
 	kraken := InitKraken()
 
 	pk, err := kraken.PagedKraken("somethings", 1, nil, "ohai")
-	if ctx.assertGotErr("Got HTTP status code 500 during page request", err, "PagedKraken()") {return}
+	if ctx.assertGotErr("Got HTTP status code 500 during page request", err, "PagedKraken()") {
+		return
+	}
 
 	krakenErr, wasKrakenErr := err.(*KrakenError)
-	if ctx.assert(wasKrakenErr, "expected error for HTTP error status to be KrakenError") {return}
-	if ctx.assert(krakenErr.statusCode == 500, "Got status code %v for HTTP Error 500", krakenErr.statusCode) {return}
+	if ctx.assert(wasKrakenErr, "expected error for HTTP error status to be KrakenError") {
+		return
+	}
+	if ctx.assert(krakenErr.statusCode == 500, "Got status code %v for HTTP Error 500", krakenErr.statusCode) {
+		return
+	}
 
-	if ctx.assert(pk == nil, "paged kraken was not nil even though initial request failed") {return}
+	if ctx.assert(pk == nil, "paged kraken was not nil even though initial request failed") {
+		return
+	}
 }
 
 func TestHTTPErrorOnLaterPage(t *testing.T) {
@@ -169,40 +209,64 @@ func TestHTTPErrorOnLaterPage(t *testing.T) {
 	kraken := InitKraken()
 
 	pk, err := kraken.PagedKraken("somethings", 1, nil, "ohai")
-	if ctx.assertNoErr(err, "PagedKraken()") {return}
-	if ctx.assert(pk != nil, "Got null PagedKraken even through there was no error") {return}
+	if ctx.assertNoErr(err, "PagedKraken()") {
+		return
+	}
+	if ctx.assert(pk != nil, "Got null PagedKraken even through there was no error") {
+		return
+	}
 
-	if ctx.assert(pk.More(), "No more items but we expected first item") {return}
+	if ctx.assert(pk.More(), "No more items but we expected first item") {
+		return
+	}
 	var value string
 	nextError := pk.Next(&value)
-	if ctx.assertNoErr(nextError, "PagedKraken.Next()") {return}
-	if ctx.assert(value == "first thing", "did not get expected value from next; got %s", value) {return}
+	if ctx.assertNoErr(nextError, "PagedKraken.Next()") {
+		return
+	}
+	if ctx.assert(value == "first thing", "did not get expected value from next; got %s", value) {
+		return
+	}
 
 	httpmock.Reset()
 
-	if ctx.assert(pk.More(), "No more items but we expected second item") {return}
+	if ctx.assert(pk.More(), "No more items but we expected second item") {
+		return
+	}
 
 	httpmock.RegisterResponder("GET", "https://api.twitch.tv/kraken/ohai?limit=1&offset=1",
 		httpmock.NewStringResponder(500, `{"error": "something is wrong"}`))
 
 	nextError = pk.Next(&value)
 
-	if ctx.assertGotErr("Got HTTP status code 500 during page request", nextError, "PagedKraken.Next()") {return}
+	if ctx.assertGotErr("Got HTTP status code 500 during page request", nextError, "PagedKraken.Next()") {
+		return
+	}
 
 	krakenErr, wasKrakenErr := nextError.(*KrakenError)
-	if ctx.assert(wasKrakenErr, "expected error for HTTP error status to be KrakenError") {return}
-	if ctx.assert(krakenErr.statusCode == 500, "Got status code %v for HTTP Error 500", krakenErr.statusCode) {return}
+	if ctx.assert(wasKrakenErr, "expected error for HTTP error status to be KrakenError") {
+		return
+	}
+	if ctx.assert(krakenErr.statusCode == 500, "Got status code %v for HTTP Error 500", krakenErr.statusCode) {
+		return
+	}
 
 	// should be ready for retry
 
 	httpmock.Reset()
 
-	if ctx.assert(pk.More(), "No more items but we expected second item") {return}
+	if ctx.assert(pk.More(), "No more items but we expected second item") {
+		return
+	}
 
 	httpmock.RegisterResponder("GET", "https://api.twitch.tv/kraken/ohai?limit=1&offset=1",
 		httpmock.NewStringResponder(200, `{"somethings": ["second thing"], "_total": 2}`))
 
 	nextError = pk.Next(&value)
-	if ctx.assertNoErr(nextError, "PagedKraken.Next()") {return}
-	if ctx.assert(value == "second thing", "did not get expected value from next; got %s", value) {return}
+	if ctx.assertNoErr(nextError, "PagedKraken.Next()") {
+		return
+	}
+	if ctx.assert(value == "second thing", "did not get expected value from next; got %s", value) {
+		return
+	}
 }

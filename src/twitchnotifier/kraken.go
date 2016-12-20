@@ -4,7 +4,7 @@ package main
 A flexible wrapper around the twitch.tv HTTP API.
 
 The basic kraken() single-call functionality is mostly right out of https://github.com/Fugiman/kaet/blob/master/kraken.go.
- */
+*/
 
 import (
 	"encoding/json"
@@ -14,10 +14,10 @@ import (
 	//"net/url"
 	"strings"
 	//"sync"
-	"time"
+	"fmt"
 	"net/url"
 	"strconv"
-	"fmt"
+	"time"
 )
 
 type Kraken struct {
@@ -37,11 +37,11 @@ func (obj *Kraken) addHeader(headerName string, headerValue string) {
 // ERROR STRUCT
 
 type KrakenError struct {
-	msg string
+	msg        string
 	statusCode int
 }
 
-func NewKrakenError(statusCode int, format string, args... interface{}) *KrakenError {
+func NewKrakenError(statusCode int, format string, args ...interface{}) *KrakenError {
 	return &KrakenError{fmt.Sprintf(format, args...), statusCode}
 }
 
@@ -53,19 +53,19 @@ func (err *KrakenError) Error() string {
 
 type KrakenPager struct {
 	krakenInstance *Kraken
-	path []string
+	path           []string
 	resultsListKey string
-	pageSize uint
-	pageOffset uint
+	pageSize       uint
+	pageOffset     uint
 
 	endOfResults bool
 
-	responseTotalFieldValue uint
+	responseTotalFieldValue    uint
 	gotResponseTotalFieldValue bool
 
 	currentPageInProgress bool
-	currentPageDecoder *json.Decoder
-	currentPageResponse *http.Response
+	currentPageDecoder    *json.Decoder
+	currentPageResponse   *http.Response
 
 	baseParams url.Values
 }
@@ -139,7 +139,7 @@ func (state *KrakenPager) Next(val interface{}) error {
 	}
 
 	err := dec.Decode(val)
-	if (err != nil) {
+	if err != nil {
 		return nil
 	}
 
@@ -226,7 +226,7 @@ func (state *KrakenPager) seekToResultsListArrayOrEnd() {
 }
 
 func (pagerState *KrakenPager) cleanupPage() {
-	if pagerState.currentPageInProgress{
+	if pagerState.currentPageInProgress {
 		if pagerState.currentPageResponse == nil {
 			msg("KrakenPager.cleanup(): currentPageResponse was already nil")
 		} else {
@@ -260,7 +260,7 @@ func (state *KrakenPager) loadPage() error {
 	params.Add("limit", strconv.Itoa(int(state.pageSize)))
 	params.Add("offset", strconv.Itoa(int(state.pageOffset)))
 
-	msg("pagedKraken for %s loading entries %v to %v", state.path, state.pageOffset, state.pageOffset + state.pageSize)
+	msg("pagedKraken for %s loading entries %v to %v", state.path, state.pageOffset, state.pageOffset+state.pageSize)
 
 	resp, err := state.krakenInstance.doAPIRequest(&params, state.path)
 	if err != nil {
@@ -295,7 +295,7 @@ func (state *KrakenPager) loadPage() error {
 
 	state.seekToResultsListArrayOrEnd()
 
-	if (!state.currentPageInProgress) {
+	if !state.currentPageInProgress {
 		// page ended after the first seekToResultsListArrayOrEnd() -- this means we didn't even get an array start
 		return NewKrakenError(200, "Response object was missing the '%s' field", state.resultsListKey)
 	}
@@ -398,6 +398,7 @@ func (obj *Kraken) kraken(data interface{}, path ...string) error {
 func roundToSeconds(d time.Duration) time.Duration {
 	return ((d + time.Second/2) / time.Second) * time.Second
 }
+
 //
 //func getUptime(channel string) string {
 //	var data struct {

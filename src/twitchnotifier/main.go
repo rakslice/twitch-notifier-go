@@ -146,18 +146,25 @@ func (win *MainStatusWindowImpl) clearInfo() {
 	win.clearStreamInfo()
 }
 
-func (win *MainStatusWindowImpl) showImageInWxImage(control wx.StaticBitmap, readCloser io.ReadCloser) {
-	// copy the file to a tempfile
-
+func readToTempFile(readCloser io.ReadCloser) (string, error) {
 	tempfile, err := ioutil.TempFile(os.TempDir(), "")
-	assert(err == nil, "Error creating temp file: %s", err)
+	if err != nil {
+		return "", err
+	}
+	defer tempfile.Close()
 
 	tempfileName := tempfile.Name()
 
-	msg("Saving image to %s", tempfileName)
+	msg("Saving to %s", tempfileName)
 
 	io.Copy(tempfile, readCloser)
-	tempfile.Close()
+	return tempfileName, nil
+}
+
+func (win *MainStatusWindowImpl) showImageInWxImage(control wx.StaticBitmap, readCloser io.ReadCloser) {
+	// copy the file to a tempfile
+	tempfileName, err := readToTempFile(readCloser)
+	assert(err == nil, "Error creating temp file: %s", err)
 
 	// Bounce through an event so the GUI interaction happens in the main thread
 	win.timeHelper.AfterFunc(0, func() {
@@ -831,17 +838,17 @@ const CLIENT_ID = "pkvo0qdzjzxeapwpf8bfogx050n4bn8"
 // COMMAND LINE OPTIONS STUFF
 
 type Options struct {
-	username            *string
-	no_browser_auth     *bool
-	poll                *int
-	all                 *bool
-	idle                *int
-	unlock_notify       *bool
-	debug_output        *bool
-	authorization_oauth *string
-	ui                  *bool
-	no_popups           *bool
-	help                *bool
+	username                  *string
+	no_browser_auth           *bool
+	poll                      *int
+	all                       *bool
+	idle                      *int
+	unlock_notify             *bool
+	debug_output              *bool
+	authorization_oauth       *string
+	ui                        *bool
+	no_popups                 *bool
+	help                      *bool
 	reload_time_interval_mins *uint
 }
 
@@ -1333,10 +1340,10 @@ func (watcher *ChannelWatcher) next() WaitItem {
 	app := watcher.app
 
 	var reloadTimeInterval time.Duration
-	if (app.options.reload_time_interval_mins != nil) {
-		reloadTimeInterval = time.Duration(*app.options.reload_time_interval_mins)*time.Minute
+	if app.options.reload_time_interval_mins != nil {
+		reloadTimeInterval = time.Duration(*app.options.reload_time_interval_mins) * time.Minute
 	} else {
-		reloadTimeInterval = 10*time.Minute
+		reloadTimeInterval = 10 * time.Minute
 	}
 	msg("%0.2f seconds between autorefreshes", reloadTimeInterval.Seconds())
 	if elapsedSinceLastRefresh >= reloadTimeInterval {

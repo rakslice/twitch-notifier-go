@@ -9,30 +9,30 @@ import (
 
 type MainStatusWindow struct {
 	wx.Frame
-	sizer_1 wx.BoxSizer
-	sizer_3 wx.BoxSizer
-	label_1 wx.StaticText
-	list_online wx.ListBox
-	label_2 wx.StaticText
-	list_offline wx.ListBox
-	label_3 wx.StaticText
-	list_log wx.ListBox
-	sizer_2 wx.BoxSizer
-	label_status wx.StaticText
-	bitmap_channel_logo wx.StaticBitmap
-	sizer_5 wx.BoxSizer
-	sizer_6 wx.BoxSizer
-	button_options wx.Button
+	sizer_1                wx.BoxSizer
+	sizer_3                wx.BoxSizer
+	label_1                wx.StaticText
+	list_online            wx.ListBox
+	label_2                wx.StaticText
+	list_offline           wx.ListBox
+	label_3                wx.StaticText
+	list_log               wx.ListBox
+	sizer_2                wx.BoxSizer
+	label_status           wx.StaticText
+	bitmap_channel_logo    wx.StaticBitmap
+	sizer_5                wx.BoxSizer
+	sizer_6                wx.BoxSizer
+	button_options         wx.Button
 	button_reload_channels wx.Button
-	button_quit wx.Button
-	label_6 wx.StaticText
-	label_head_game wx.StaticText
-	label_head_up wx.StaticText
-	label_head_started wx.StaticText
-	label_channel_status wx.StaticText
-	label_game wx.StaticText
-	label_uptime wx.StaticText
-	label_start_time wx.StaticText
+	button_quit            wx.Button
+	label_6                wx.StaticText
+	label_head_game        wx.StaticText
+	label_head_up          wx.StaticText
+	label_head_started     wx.StaticText
+	label_channel_status   wx.StaticText
+	label_game             wx.StaticText
+	label_uptime           wx.StaticText
+	label_start_time       wx.StaticText
 }
 
 type MainStatusWindowEvents interface {
@@ -51,11 +51,11 @@ func initMainStatusWindow(eventInterface MainStatusWindowEvents) *MainStatusWind
 	out.sizer_1 = wx.NewBoxSizer(wx.VERTICAL)
 	out.sizer_3 = wx.NewBoxSizer(wx.HORIZONTAL)
 	out.label_1 = wx.NewStaticText(out, wx.ID_ANY, "Online")
-	out.list_online = wx.NewListBox(out, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, []string {})
+	out.list_online = wx.NewListBox(out, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, []string{})
 	out.label_2 = wx.NewStaticText(out, wx.ID_ANY, "Offline")
-	out.list_offline = wx.NewListBox(out, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, []string {})
+	out.list_offline = wx.NewListBox(out, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, []string{})
 	out.label_3 = wx.NewStaticText(out, wx.ID_ANY, "Log")
-	out.list_log = wx.NewListBox(out, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, []string {})
+	out.list_log = wx.NewListBox(out, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, []string{})
 	out.sizer_2 = wx.NewBoxSizer(wx.HORIZONTAL)
 	out.label_status = wx.NewStaticText(out, wx.ID_ANY, "Status")
 	out.bitmap_channel_logo = wx.NewStaticBitmap(out, wx.ID_ANY, wx.NullBitmap)
@@ -72,10 +72,10 @@ func initMainStatusWindow(eventInterface MainStatusWindowEvents) *MainStatusWind
 	out.label_game = wx.NewStaticText(out, wx.ID_ANY, "")
 	out.label_uptime = wx.NewStaticText(out, wx.ID_ANY, "")
 	out.label_start_time = wx.NewStaticText(out, wx.ID_ANY, "")
-	
+
 	out.set_properties()
 	out.do_layout()
-	
+
 	wx.Bind(out, wx.EVT_LISTBOX, eventInterface._on_list_online_gen, out.list_online.GetId())
 	wx.Bind(out, wx.EVT_LISTBOX_DCLICK, eventInterface._on_list_online_dclick, out.list_online.GetId())
 	wx.Bind(out, wx.EVT_LISTBOX, eventInterface._on_list_offline_gen, out.list_offline.GetId())
@@ -83,7 +83,7 @@ func initMainStatusWindow(eventInterface MainStatusWindowEvents) *MainStatusWind
 	wx.Bind(out, wx.EVT_BUTTON, eventInterface._on_options_button_click, out.button_options.GetId())
 	wx.Bind(out, wx.EVT_BUTTON, eventInterface._on_button_reload_channels_click, out.button_reload_channels.GetId())
 	wx.Bind(out, wx.EVT_BUTTON, eventInterface._on_button_quit, out.button_quit.GetId())
-	
+
 	return out
 }
 
@@ -126,4 +126,3 @@ func (window MainStatusWindow) set_properties() {
 	window.list_offline.SetToolTip("Double-Click to open channel page")
 	window.bitmap_channel_logo.SetMinSize(wx.NewSize(128, 128))
 }
-
