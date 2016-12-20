@@ -256,10 +256,7 @@ func (app *OurTwitchNotifierMain) doChannelsReload() {
 	app.window_impl.cancel_timer_callback_immediate()
 }
 
-func (app *OurTwitchNotifierMain) openSiteForListEntry(isOnline bool, e wx.Event) {
-	commandEvent := wx.ToCommandEvent(e)
-
-	index := commandEvent.GetInt()
+func (app *OurTwitchNotifierMain) getUrlForListEntry(isOnline bool, index int) (string, bool) {
 	channel, stream := app.getChannelAndStreamForListEntry(isOnline, index)
 
 	var url string
@@ -269,10 +266,21 @@ func (app *OurTwitchNotifierMain) openSiteForListEntry(isOnline bool, e wx.Event
 		url = channel.Url
 	} else {
 		app.log("Channel is none somehow")
-		return
+		return "", false
 	}
+	return url, true
+}
 
-	webbrowser_open(url)
+func (app *OurTwitchNotifierMain) openSiteForListEntry(isOnline bool, e wx.Event) {
+	commandEvent := wx.ToCommandEvent(e)
+
+	index := commandEvent.GetInt()
+
+	url, found := app.getUrlForListEntry(isOnline, index)
+
+	if found {
+		webbrowser_open(url)
+	}
 }
 
 // Note that this implementation will run the callback on another thread, so the callback needs to pass control

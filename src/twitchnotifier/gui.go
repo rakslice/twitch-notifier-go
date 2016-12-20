@@ -32,20 +32,22 @@ and implements the GUI
 */
 type MainStatusWindowImpl struct {
 	MainStatusWindow
-	app                    wx.App
-	main_obj               *OurTwitchNotifierMain
-	toolbar_icon           wx.TaskBarIcon
-	balloon_click_callback func() error
+	app                             wx.App
+	main_obj                        *OurTwitchNotifierMain
+	toolbar_icon                    wx.TaskBarIcon
+	balloon_click_callback          func() error
 
 	// notifications waiting to go on the screen behind the currently shown notification
-	notifications_queue []NotificationQueueEntry
+	notifications_queue             []NotificationQueueEntry
 	// whether there is currently a batch of notifications being shown
 	notifications_queue_in_progress bool
 
-	timer          *TimerWrapper
-	timer_callback func()
+	timer                           *TimerWrapper
+	timer_callback                  func()
 
-	timeHelper *WxTimeHelper
+	timeHelper                      *WxTimeHelper
+
+	copySelectedUrlMenuItem         wx.MenuItem
 }
 
 //func getTokenFilename() string {
@@ -64,6 +66,8 @@ func InitMainStatusWindowImpl(testMode bool, replacementOptionsFunc func() *Opti
 
 	out.balloon_click_callback = nil
 	out.app = nil
+
+	out.copySelectedUrlMenuItem = nil
 
 	out.notifications_queue_in_progress = false
 	out.notifications_queue = make([]NotificationQueueEntry, 0)
@@ -171,8 +175,10 @@ func (win *MainStatusWindowImpl) _on_list_gen(e wx.Event, wasOnlineList bool) {
 		otherList.SetSelection(-1)
 		channel, stream := win.main_obj.getChannelAndStreamForListEntry(wasOnlineList, idx)
 		win.showInfo(channel, stream)
+		win.copySelectedUrlMenuItem.Enable(true)
 	} else {
 		win.clearInfo()
+		win.copySelectedUrlMenuItem.Enable(false)
 	}
 }
 
@@ -512,6 +518,11 @@ func (win *MainStatusWindowImpl) createMenuBar(menuInAppWindow bool) wx.MenuBar 
 	hideGuiItem := menu.Append(wx.ID_ANY, "Hide GUI\tCtrl-W")
 	wx.Bind(menuBar, wx.EVT_MENU, win.onMenuHideGUI, hideGuiItem.GetId())
 
+	copyURLItem := menu.Append(wx.ID_ANY, "Copy URL\tCtrl-C")
+	copyURLItem.Enable(false)
+	wx.Bind(menuBar, wx.EVT_MENU, win.onMenuCopySelectedURL, copyURLItem.GetId())
+	win.copySelectedUrlMenuItem = copyURLItem
+
 	aboutItem := menu.Append(wx.ID_ABOUT, "About twitch-notifier-go")
 	assert(aboutItem.GetId() == wx.ID_ABOUT, "expected about item to have GetId() of ID_ABOUT")
 	wx.Bind(menuBar, wx.EVT_MENU, win.onMenuAbout, aboutItem.GetId())
@@ -542,6 +553,35 @@ func (win *MainStatusWindowImpl) onMenuShowGUI(e wx.Event) {
 func (win *MainStatusWindowImpl) onMenuHideGUI(e wx.Event) {
 	msg("onMenuHideGUI")
 	win.Hide()
+}
+
+func (win *MainStatusWindowImpl) getSelectedItemURL() (string, bool) {
+	for _, online := range []bool {true, false} {
+		list := win.main_obj._list_for_is_online(online)
+		idx := list.GetSelection()
+		if idx >= 0 {
+			url, found := win.main_obj.getUrlForListEntry(online, idx)
+			if found {
+				return url, true
+			}
+		}
+	}
+	return "", false
+}
+
+func (win *MainStatusWindowImpl) onMenuCopySelectedURL(e wx.Event) {
+	url, found := win.getSelectedItemURL()
+
+	if found {
+		clipboard := wx.NewClipboard()
+		if !clipboard.IsOpened() {
+			clipboard.Open()
+			defer clipboard.Close()
+			clipData := wx.NewTextDataObject()
+			clipData.SetText(url)
+			clipboard.SetData(clipData)
+		}
+	}
 }
 
 func (win *MainStatusWindowImpl) onMenuReloadChannels(e wx.Event) {
