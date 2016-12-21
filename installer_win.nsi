@@ -1,3 +1,6 @@
+
+Name twitch-notifier-go
+
 # define name of installer
 OutFile "twitchnotifier64.exe"
 
@@ -7,8 +10,17 @@ InstallDir $PROGRAMFILES64\twitch-notifier-go
 # For removing Start Menu shortcut in Windows 7
 RequestExecutionLevel admin
 
+Page license
+
+LicenseText "License for twitch-notifier-go"
+LicenseData LICENSE
+
+Page directory
 Page components
 Page instfiles
+
+UninstPage uninstConfirm
+UninstPage instfiles
 
 # start default section
 Section
@@ -63,4 +75,9 @@ Section "uninstall"
     Delete "$INSTDIR\README.md"
 
 # uninstaller section end
+SectionEnd
+
+Section "Run after install"
+   SetOutPath $INSTDIR
+   Exec '"$WINDIR\explorer.exe" "$INSTDIR\twitch-notifier-go.exe"'
 SectionEnd
