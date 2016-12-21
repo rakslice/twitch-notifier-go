@@ -36,6 +36,7 @@ after_build:
   - 7z a twitch-notifier-go.zip c:\project\bin\twitchnotifier.exe
   - 7z a twitch-notifier-go.zip %APPVEYOR_BUILD_FOLDER%\README.md
   - 7z a twitch-notifier-go.zip %APPVEYOR_BUILD_FOLDER%\LICENSE
+  - copy c:\project\bin\twitchnotifier.exe src\twitchnotifier\twitch-notifier-go.exe
   - make_windows_installer.cmd
 
 artifacts:

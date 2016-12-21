@@ -17,6 +17,9 @@ Section
 
     File src\twitchnotifier\twitch-notifier-go.exe
 
+    File LICENSE
+    File README.md
+
     # create the uninstaller
     WriteUninstaller "$INSTDIR\uninstall.exe"
 
@@ -55,6 +58,9 @@ Section "uninstall"
     Delete "$SMPROGRAMS\Startup\Run twitch-notifier-go on Startup.lnk"
 
     Delete "$INSTDIR\twitch-notifier-go.exe"
+
+    Delete "$INSTDIR\LICENSE"
+    Delete "$INSTDIR\README.md"
 
 # uninstaller section end
 SectionEnd
