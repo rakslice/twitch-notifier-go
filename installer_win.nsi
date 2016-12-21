@@ -1,3 +1,6 @@
+!define APPNAME twitch-notifier-go
+!define ARP "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
+!include "FileFunc.nsh"
 
 Name twitch-notifier-go
 
@@ -35,12 +38,24 @@ Section
     # create the uninstaller
     WriteUninstaller "$INSTDIR\uninstall.exe"
 
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\twitch-notifier-go" \
+    WriteRegStr HKLM "${ARP}" \
                      "DisplayName" "twitch-notifier-go"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\twitch-notifier-go" \
+    WriteRegStr HKLM "${ARP}" \
+                     "InstallLocation" "$INSTDIR"
+    WriteRegStr HKLM "${ARP}" \
+                     "Publisher" "rakslice"
+    WriteRegStr HKLM "${ARP}" \
+                     "URLUpdateInfo" "https://twitch-notifier.blogspot.ca/"
+    WriteRegStr HKLM "${ARP}" \
+                     "URLInfoAbout" "https://twitch-notifier.blogspot.ca/"
+    WriteRegStr HKLM "${ARP}" \
                      "UninstallString" "$\"$INSTDIR\uninstall.exe$\""
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\twitch-notifier-go" \
+    WriteRegStr HKLM "${ARP}" \
                      "DisplayIcon" "$\"$INSTDIR\twitch-notifier-go.exe$\""
+
+    ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
+    IntFmt $0 "0x%08X" $0
+    WriteRegDWORD HKLM "${ARP}" "EstimatedSize" "$0"
 
 SectionEnd
 
