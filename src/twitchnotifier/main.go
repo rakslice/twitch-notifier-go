@@ -30,6 +30,7 @@ type Options struct {
 	no_popups                 *bool
 	help                      *bool
 	reload_time_interval_mins *uint
+	hide_on_launch            *bool
 }
 
 func parse_args() *Options {
@@ -46,6 +47,7 @@ func parse_args() *Options {
 	options.no_popups = flag.Bool("no-popups", false, "Don't do popups, for when using just the UI")
 	options.help = flag.Bool("help", false, "Show usage")
 	options.reload_time_interval_mins = flag.Uint("reload-time-interval", 60, "Number of minutes between automatic channel reloads")
+	options.hide_on_launch = flag.Bool("hide", true, "Don't show the GUI on launch")
 	msg("before flag parse")
 	flag.Parse()
 	msg("after flag parse")

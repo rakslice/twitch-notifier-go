@@ -650,8 +650,12 @@ func commonMain(replacementOptionsFunc func() *Options) {
 
 	frame.app = app
 	app.SetTopWindow(frame)
-	msg("showing frame")
-	frame.Show()
+
+	options := frame.main_obj.options
+	if options.hide_on_launch == nil || !*options.hide_on_launch {
+		msg("showing frame")
+		frame.Show()
+	}
 
 	// we're doing this in set_timeout so that it happens inside app.MainLoop() -- otherwise
 	// the wx thread safeguard gets confused
