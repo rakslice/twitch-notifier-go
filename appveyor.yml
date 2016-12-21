@@ -36,10 +36,13 @@ after_build:
   - 7z a twitch-notifier-go.zip c:\project\bin\twitchnotifier.exe
   - 7z a twitch-notifier-go.zip %APPVEYOR_BUILD_FOLDER%\README.md
   - 7z a twitch-notifier-go.zip %APPVEYOR_BUILD_FOLDER%\LICENSE
+  - make_windows_installer.cmd
 
 artifacts:
   - path: twitch-notifier-go.zip
-    name: twitch-notifier-go windows zip
+    name: twitch-notifier-go windows 64-bit zip
+  - path: twitchnotifier64.exe
+    name: twitch-notifier-go windows 64-bit installer
 
 test_script:
 - cmd: >-
