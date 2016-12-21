@@ -431,6 +431,7 @@ func (win *MainStatusWindowImpl) _timer_internal_callback() {
 // EVENT HANDLERS AND OTHER CONCRETE WINDOW METHODS
 
 func (win *MainStatusWindowImpl) _on_toolbar_icon_left_dclick(e wx.Event) {
+	msg("_on_toolbar_icon_left_dclick")
 	win.Show()
 	win.Raise()
 }
@@ -472,7 +473,7 @@ func (win *MainStatusWindowImpl) _dispense_remaining_notifications() {
 }
 
 func (win *MainStatusWindowImpl) _on_toolbar_balloon_click(e wx.Event) {
-	win.main_obj.log("notification clicked")
+	win.main_obj.log("_on_toolbar_balloon_click: notification clicked")
 	if win.balloon_click_callback != nil {
 		err := win.balloon_click_callback()
 		if err != nil {
