@@ -547,7 +547,7 @@ func (l ChannelSlice) Len() int {
 }
 
 func (l ChannelSlice) Less(i, j int) bool {
-	return l[i].Display_Name < l[j].Display_Name
+	return strings.ToLower(l[i].Display_Name) < strings.ToLower(l[j].Display_Name)
 }
 
 func (l ChannelSlice) Swap(i, j int) {
