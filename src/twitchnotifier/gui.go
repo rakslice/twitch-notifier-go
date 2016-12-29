@@ -644,7 +644,7 @@ func preApp() {
 func commonMain(replacementOptionsFunc func() *Options) {
 	preApp()
 
-	app := wx.NewApp()
+	app := wx.NewApp("twitch-notifier-go")
 
 	msg("init top")
 	frame := InitMainStatusWindowImpl(false, replacementOptionsFunc)
