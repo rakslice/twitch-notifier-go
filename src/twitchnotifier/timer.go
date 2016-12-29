@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/dontpanic92/wxGo/wx"
+	"github.com/rakslice/wxGo/wx"
 	"sync"
 	"time"
 	//"runtime/debug"
@@ -19,7 +19,7 @@ The implementation wraps time.AfterFunc, and ships its callbacks to the wx main
 thread by way of a wx.ThreadingEvent. This approach is based on the
 wxGo threadevent example:
 
-https://github.com/dontpanic92/wxGo/blob/master/examples/src/threadevent/main.go
+https://github.com/rakslice/wxGo/blob/master/examples/src/threadevent/main.go
 */
 
 // TIME HELPER STUFF

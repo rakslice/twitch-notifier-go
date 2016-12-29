@@ -8,7 +8,7 @@
 
 package main
 
-import "github.com/dontpanic92/wxGo/wx"
+import "github.com/rakslice/wxGo/wx"
 
 func (win *MainStatusWindowImpl) additionalBindings() {
 	// last param should be a specific object id if we have one e.g. out.toolbar_icon.GetId()?

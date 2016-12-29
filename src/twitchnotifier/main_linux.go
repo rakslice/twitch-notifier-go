@@ -2,7 +2,7 @@
 
 package main
 
-import "github.com/dontpanic92/wxGo/wx"
+import "github.com/rakslice/wxGo/wx"
 
 func main() {
 	commonMain(nil)

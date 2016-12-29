@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/dontpanic92/wxGo/wx"
+	"github.com/rakslice/wxGo/wx"
 )
 
 type BrowserAuthDialogCallback func(string, *url.URL)

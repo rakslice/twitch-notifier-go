@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/dontpanic92/wxGo/wx"
+	"github.com/rakslice/wxGo/wx"
 	"github.com/tomcatzh/asynchttpclient"
 	"log"
 	"net/http"

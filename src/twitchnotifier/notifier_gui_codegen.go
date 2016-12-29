@@ -4,7 +4,7 @@ package main
 // from C:\Users\Andrew Tonner\twitch-notifier\notifiergui\notifier_gui.wxg
 
 import (
-	"github.com/dontpanic92/wxGo/wx"
+	"github.com/rakslice/wxGo/wx"
 )
 
 type MainStatusWindow struct {

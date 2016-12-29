@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/dontpanic92/wxGo/wx"
+	"github.com/rakslice/wxGo/wx"
 	"github.com/jarcoal/httpmock"
 )
 
