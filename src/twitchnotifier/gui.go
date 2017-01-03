@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/dontpanic92/wxGo/wx"
+	"github.com/rakslice/wxGo/wx"
 	"io"
 	"log"
 	"net/http"
@@ -644,7 +644,7 @@ func preApp() {
 func commonMain(replacementOptionsFunc func() *Options) {
 	preApp()
 
-	app := wx.NewApp()
+	app := wx.NewApp("twitch-notifier-go")
 
 	msg("init top")
 	frame := InitMainStatusWindowImpl(false, replacementOptionsFunc)

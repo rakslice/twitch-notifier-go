@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/dontpanic92/wxGo/wx"
+	"github.com/rakslice/wxGo/wx"
 	"github.com/jarcoal/httpmock"
 )
 
@@ -46,7 +46,7 @@ func commonTestStart() *MainStatusWindowImpl {
 	if !appInitialized {
 		appInitialized = true
 		msg("initializing app")
-		commonAppForTests = wx.NewApp()
+		commonAppForTests = wx.NewApp("channel_change_test")
 		msg("app initialized")
 	} else {
 		msg("app already initialized")

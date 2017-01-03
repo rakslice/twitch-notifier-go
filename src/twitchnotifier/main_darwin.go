@@ -9,7 +9,7 @@ import (
 	"path"
 
 	"github.com/deckarep/gosx-notifier"
-	"github.com/dontpanic92/wxGo/wx"
+	"github.com/rakslice/wxGo/wx"
 	"github.com/kardianos/osext"
 )
 
