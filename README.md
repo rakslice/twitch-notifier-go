@@ -6,8 +6,6 @@
 
 ![screenshot](README/screenshot_notification.png)
 
-![screenshot](README/screenshot_main_window.png)
-
 [Visit my twitch-notifier blog for daily build downloads and more frequently updated info.
 ](https://twitch-notifier.blogspot.ca/)
 
@@ -19,7 +17,10 @@ A quick golang port of my python twitch notifier.  Works on Windows; Works on Ma
 
 ## Usage
 
-Run the app, do a web login to Twitch when prompted. You can then close the main window if you like and leave the app running to get notifications.  To bring the main window up again, double-click the system tray icon (Windows) or use the Show GUI menu item (Mac.
+Run the app, do a web login to Twitch when prompted. You can then close the main window if you like and leave the app running to get notifications.  To bring the main window up again, double-click the system tray icon (Windows) or use the Show GUI menu item (Mac).
+
+
+![screenshot](README/screenshot_main_window.png)
 
 Unlike the python version, which has a username-only mode that looks at a user's public follows and doesn't require a login, twitch-notifier-go doesn't yet have a way around logging in or passing the OAuth token on the command line at the moment. 
 
