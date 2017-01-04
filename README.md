@@ -11,13 +11,13 @@
 
 Windows: [![Build status](https://ci.appveyor.com/api/projects/status/wdd0jhu4gobdy83a?svg=true)](https://ci.appveyor.com/project/rakslice/twitch-notifier-go) Mac / Linux: [![Travis CI Build Status](https://travis-ci.org/rakslice/twitch-notifier-go.svg)](https://travis-ci.org/rakslice/twitch-notifier-go)
 
-This is past the proof-of-concept stage, and is usable for getting notifications, but doesn't have all the features of my Python twitch-notifier yet, and is certainly a work in progress.
+**twitch-notifier-go** is a golang port of my python twitch notifier.  Works on Windows; Works on Mac; Linux support in progress.
 
-A quick golang port of my python twitch notifier.  Works on Windows; Works on Mac; Linux support in progress.
+This is past the proof-of-concept stage, and is usable for getting notifications, but doesn't have all the features of my Python twitch-notifier yet, and is certainly a work in progress.
 
 ## Usage
 
-Run the app, do a web login to Twitch when prompted. You can then close the main window if you like and leave the app running to get notifications.  To bring the main window up again, double-click the system tray icon (Windows) or use the Show GUI menu item (Mac).
+Run the app, do the web login to Twitch when it comes up. You can then close the main window if you like and leave the app running to get notifications.  To bring the main window up again, double-click the system tray icon (Windows) or use the Show GUI menu item (Mac).
 
 
 ![screenshot](README/screenshot_main_window.png)
