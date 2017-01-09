@@ -78,6 +78,8 @@ func InitMainStatusWindowImpl(testMode bool, replacementOptionsFunc func() *Opti
 	assert(the_icon.IsOk(), "asset icon was not ok")
 	out.toolbar_icon.SetIcon(the_icon)
 
+	out.SetIcon(the_icon)
+
 	out.clearLogo()
 
 	out.additionalBindings()
