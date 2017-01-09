@@ -138,10 +138,10 @@ func (app *TwitchNotifierMain) notify_for_stream(channel_name string, stream *St
 	game := stream.Game
 
 	var show_info string
-	if game == nil {
+	if game == nil || *game == ""{
 		show_info = ""
 	} else {
-		show_info = fmt.Sprintf("with %s ", *stream.Game)
+		show_info = fmt.Sprintf("with %s ", *game)
 	}
 
 	message := fmt.Sprintf("%s is now live %s(up %s)", channel_name, show_info, time_desc(elapsed_s))
