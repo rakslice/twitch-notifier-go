@@ -22,6 +22,7 @@ type OurTwitchNotifierMain struct {
 	channel_status_by_id      map[ChannelID]*ChannelStatus
 	previously_online_streams map[ChannelID]bool
 	stream_by_channel_id      map[ChannelID]*StreamInfo
+	follow_notification       map[ChannelID]bool
 	asynchttpclient           *asynchttpclient.Client
 	need_relayout             bool
 	lastReloadTime            time.Time
@@ -34,6 +35,7 @@ func InitOurTwitchNotifierMain() *OurTwitchNotifierMain {
 	out.channel_status_by_id = make(map[ChannelID]*ChannelStatus)
 	out.previously_online_streams = make(map[ChannelID]bool)
 	out.stream_by_channel_id = make(map[ChannelID]*StreamInfo)
+	out.follow_notification = make(map[ChannelID]bool)
 	msg("before http client")
 	out.asynchttpclient = &asynchttpclient.Client{}
 	out.asynchttpclient.Concurrency = 3
@@ -443,6 +445,7 @@ func (watcher *ChannelWatcher) next() WaitItem {
 				watcher.channels_followed[channel_id] = true
 				watcher.channels_followed_names = append(watcher.channels_followed_names, channel_name)
 				watcher.channel_info[channel_id] = channel
+				watcher.app.follow_notification[channel_id] = notifications_enabled
 			} else {
 				notificationsDisabledFor = append(notificationsDisabledFor, channel_name)
 			}
@@ -500,9 +503,10 @@ func (watcher *ChannelWatcher) next() WaitItem {
 			val, ok := watcher.last_streams[channel_id]
 			//msg("stream fetch output: %v, %v", uint64(val), ok)
 			if !ok || val != stream_id {
-				//msg("before stream notify for %s", channel_name)
-				app.notify_for_stream(channel_name, stream)
-				//msg("after stream notify for %s", channel_name)
+				ok, notifications_enabled := app.follow_notification[channel_id]
+				if ok && notifications_enabled {
+					app.notify_for_stream(channel_name, stream)
+				}
 			}
 			watcher.last_streams[channel_id] = stream_id
 		} else {
