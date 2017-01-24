@@ -75,7 +75,9 @@ This is called when a channel has gone online or offline
 func (app *OurTwitchNotifierMain) stream_state_change(channel_id ChannelID, new_online bool, stream *StreamInfo) {
 	msg("stream state change for channel %v", uint64(channel_id))
 
-	app._store_updated_channel_info(stream.Channel)
+	if stream != nil {
+		app._store_updated_channel_info(stream.Channel)
+	}
 
 	val, ok := app.previously_online_streams[channel_id]
 	if ok && val {
