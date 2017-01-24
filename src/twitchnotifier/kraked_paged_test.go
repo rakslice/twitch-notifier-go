@@ -5,44 +5,10 @@ import (
 	"testing"
 )
 
-// TEST CONTEXT TO PROVIDE CUSTOM ASSERT METHODS ON THE TEST CLASS
-
-type TestContext struct {
-	t *testing.T
-}
-
-func Ctx(t *testing.T) *TestContext {
-	return &TestContext{t}
-}
-
-func (ctx *TestContext) assertGotErr(expectedMsg string, err error, desc string) bool {
-	if ctx.assert(err != nil, "In %s, expected error message '%s' but got no error", desc, expectedMsg) {
-		return true
-	}
-	actualMessage := err.Error()
-	return ctx.assert(actualMessage == expectedMsg, "In %s, expected error messge '%s' but got error message '%s'", desc, expectedMsg, actualMessage)
-}
-
-func (ctx *TestContext) assertNoErr(err error, desc string) bool {
-	if err != nil {
-		return ctx.assert(err == nil, "In %s, expected no error, but got error message '%s'", desc, err.Error())
-	}
-	return false
-}
-
-func (ctx *TestContext) assert(cond bool, fmt string, args ...interface{}) bool {
-	if !cond {
-		ctx.t.Errorf(fmt, args...)
-		return true
-	} else {
-		return false
-	}
-}
-
 // TESTS
 
 func TestMissingFieldError(t *testing.T) {
-	ctx := Ctx(t)
+	ctx := NewTestCtx(t)
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
@@ -61,7 +27,7 @@ func TestMissingFieldError(t *testing.T) {
 }
 
 func TestMissingTotalField(t *testing.T) {
-	ctx := Ctx(t)
+	ctx := NewTestCtx(t)
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
@@ -80,7 +46,7 @@ func TestMissingTotalField(t *testing.T) {
 }
 
 func TestNoObjects(t *testing.T) {
-	ctx := Ctx(t)
+	ctx := NewTestCtx(t)
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
@@ -103,7 +69,7 @@ func TestNoObjects(t *testing.T) {
 }
 
 func TestTotalNonZeroButFirstPageEmpty(t *testing.T) {
-	ctx := Ctx(t)
+	ctx := NewTestCtx(t)
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
@@ -122,7 +88,7 @@ func TestTotalNonZeroButFirstPageEmpty(t *testing.T) {
 }
 
 func TestTotalNonZeroButLaterPageEmpty(t *testing.T) {
-	ctx := Ctx(t)
+	ctx := NewTestCtx(t)
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
@@ -171,7 +137,7 @@ func TestTotalNonZeroButLaterPageEmpty(t *testing.T) {
 }
 
 func TestHTTPErrorOnInitialPage(t *testing.T) {
-	ctx := Ctx(t)
+	ctx := NewTestCtx(t)
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
@@ -199,7 +165,7 @@ func TestHTTPErrorOnInitialPage(t *testing.T) {
 }
 
 func TestHTTPErrorOnLaterPage(t *testing.T) {
-	ctx := Ctx(t)
+	ctx := NewTestCtx(t)
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 

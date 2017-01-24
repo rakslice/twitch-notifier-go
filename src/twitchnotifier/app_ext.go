@@ -74,6 +74,9 @@ This is called when a channel has gone online or offline
 */
 func (app *OurTwitchNotifierMain) stream_state_change(channel_id ChannelID, new_online bool, stream *StreamInfo) {
 	msg("stream state change for channel %v", uint64(channel_id))
+
+	app._store_updated_channel_info(stream.Channel)
+
 	val, ok := app.previously_online_streams[channel_id]
 	if ok && val {
 		delete(app.previously_online_streams, channel_id)
@@ -239,6 +242,18 @@ func (app *OurTwitchNotifierMain) _channel_for_id(channel_id ChannelID) *Channel
 		}
 	}
 	return nil
+}
+
+func (app *OurTwitchNotifierMain) _store_updated_channel_info(updatedChannel *ChannelInfo) {
+	if updatedChannel == nil {
+		return
+	}
+	for i, existingChannel := range app.followed_channel_entries {
+		if existingChannel.Id == updatedChannel.Id {
+			app.followed_channel_entries[i] = updatedChannel
+			break
+		}
+	}
 }
 
 func (app *OurTwitchNotifierMain) _list_for_is_online(online bool) wx.ListBox {
@@ -493,6 +508,9 @@ func (watcher *ChannelWatcher) next() WaitItem {
 		var stream *StreamInfo = channel_stream.stream
 		assert(channel != nil, "channel_stream had no channel")
 		channel_name := channel.Display_Name
+
+		// update channel info from the channel object in this stream
+		watcher.channel_info[channel_id] = channel
 
 		stream_we_consider_online := stream != nil && !stream.Is_playlist
 

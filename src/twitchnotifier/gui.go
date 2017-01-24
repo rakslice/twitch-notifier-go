@@ -167,10 +167,7 @@ func InitMainStatusWindowImpl(testMode bool, replacementOptionsFunc func() *Opti
 
 // CONCRETE WINDOW METHODS
 
-func (win *MainStatusWindowImpl) _on_list_gen(e wx.Event, wasOnlineList bool) {
-	commandEvent := wx.ToCommandEvent(e)
-
-	idx := commandEvent.GetInt()
+func (win *MainStatusWindowImpl) _on_list_gen_int(idx int, wasOnlineList bool) {
 	if idx >= 0 {
 		otherList := win.main_obj._list_for_is_online(!wasOnlineList)
 
@@ -182,6 +179,13 @@ func (win *MainStatusWindowImpl) _on_list_gen(e wx.Event, wasOnlineList bool) {
 		win.clearInfo()
 		win.copySelectedUrlMenuItem.Enable(false)
 	}
+}
+
+func (win *MainStatusWindowImpl) _on_list_gen(e wx.Event, wasOnlineList bool) {
+	commandEvent := wx.ToCommandEvent(e)
+
+	idx := commandEvent.GetInt()
+	win._on_list_gen_int(idx, wasOnlineList)
 }
 
 func (win *MainStatusWindowImpl) _on_list_online_gen(e wx.Event) {

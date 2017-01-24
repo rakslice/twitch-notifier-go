@@ -5,6 +5,7 @@ import (
 
 	"github.com/rakslice/wxGo/wx"
 	"github.com/jarcoal/httpmock"
+	"time"
 )
 
 // Until we get the issues with app deletion sorted out, let's just reuse
@@ -209,4 +210,87 @@ func guiTestStreamsGoOffline(t *testing.T, frame *MainStatusWindowImpl, testDone
 
 func assertEqual(expectedValue uint, actualValue uint, desc string) {
 	assert(expectedValue == actualValue, "%s expected %v, got %v", desc, expectedValue, actualValue)
+}
+
+func TestForChannelTextUpdatesFromStreamUpdate(t *testing.T) {
+	commonGuiTestAsync(t, guiTestChannelTextUpdatesFromStreamUpdate)
+}
+
+func guiTestChannelTextUpdatesFromStreamUpdate(t *testing.T, frame *MainStatusWindowImpl, testDoneCallback func()) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	fake_oauth_token := "fakeoauth123"
+	msg("setting mock oauth token: %s", fake_oauth_token)
+	frame.main_obj.options.authorization_oauth = &fake_oauth_token
+	frame.main_obj._auth_oauth = fake_oauth_token
+
+	msg("creating channel watcher")
+	frame.main_obj.main_loop_iter = frame.main_obj.NewChannelWatcher()
+
+	msg("mocking username call")
+	httpmock.RegisterResponder("GET", "https://api.twitch.tv/kraken",
+		httpmock.NewStringResponder(200, `{"token": {"user_name": "fakeusername"}}`))
+
+	msg("mocking call to get followed channels")
+
+	httpmock.RegisterResponder("GET", "https://api.twitch.tv/kraken/users/fakeusername/follows/channels?limit=25&offset=0",
+		httpmock.NewStringResponder(200, `{"_total": 1, "follows": [{"notifications": true, "channel": {
+		  "id": 123,
+		  "display_name": "FakeChannel",
+		  "url": "https://twitch.tv/fakechannel",
+		  "status": "i am the first status",
+		  "logo": null
+		}}]}`))
+
+	msg("mocking first call to see what streams are up")
+
+	httpmock.RegisterResponder("GET", "https://api.twitch.tv/kraken/streams/followed?limit=25&offset=0&stream_type=live",
+		httpmock.NewStringResponder(200, `{"_total": 1, "streams": [
+			{"channel": {
+				  "id": 123,
+				  "display_name": "FakeChannel",
+				  "url": "https://twitch.tv/fakechannel",
+				  "status": "i am the second status",
+				  "logo": null
+				},
+			 "is_playlist": false,
+			 "id": 456,
+			 "created_at": "2016-01-01T01:01:01Z",
+			 "game": "another vidya game"
+			}
+		]}`))
+
+	msg("doing iterator call")
+	next_wait := frame.main_obj.main_loop_iter.next()
+	frame.main_obj.log(next_wait.reason)
+
+	msg("basic checks")
+	streams_online := frame.list_online.GetCount()
+	streams_offline := frame.list_offline.GetCount()
+	assertEqual(1, streams_online, "streams online")
+	assertEqual(0, streams_offline, "streams offline")
+
+	ctx := NewTestCtx(t)
+
+	delay_amount := time.Millisecond * 500
+
+	msg("wait update (1)")
+	frame.set_timeout(delay_amount, func() {
+		msg("select the list item for the stream")
+		frame.list_online.SetSelection(0)
+		// in wx, setting the selection programmatically doesn't trigger the event handler for a selection change,
+		// so we'll just call the event handler directly here
+		frame._on_list_gen_int(0, true)
+
+		msg("wait for update (2)")
+		frame.set_timeout(delay_amount, func() {
+
+			if ctx.assertStrEqual("i am the second status", frame.label_channel_status.GetLabel(), "label_channel_status") {testDoneCallback()}
+			if ctx.assertStrEqual("another vidya game", frame.label_game.GetLabel(), "label_game") {testDoneCallback()}
+
+			testDoneCallback()
+		})
+
+	})
 }
