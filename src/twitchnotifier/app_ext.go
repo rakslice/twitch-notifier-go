@@ -346,6 +346,7 @@ type ChannelWatcher struct {
 	last_streams      map[ChannelID]StreamID
 
 	channels_followed_names []string
+	channel_load_retries int
 }
 
 func (app *OurTwitchNotifierMain) NewChannelWatcher() *ChannelWatcher {
@@ -356,7 +357,20 @@ func (app *OurTwitchNotifierMain) NewChannelWatcher() *ChannelWatcher {
 	watcher.channels_followed = make(map[ChannelID]bool)
 	watcher.channel_info = make(map[ChannelID]*ChannelInfo)
 	watcher.last_streams = make(map[ChannelID]StreamID)
+	watcher.channel_load_retries = 0
 	return watcher
+}
+
+func (watcher *ChannelWatcher) checkFollowsRequestError(err error, context string) *WaitItem {
+	assert(err == nil || watcher.channel_load_retries < 10, "follows %s error: %s; %v retries failed", context, err, watcher.channel_load_retries)
+	if err != nil {
+		watcher.channel_load_retries += 1
+		msg("follows %s error: %s; retry %v", context, err, watcher.channel_load_retries)
+		// we can't really do much with follows in a bad state... we need a quick retry
+		// we haven't cleared the flag for a channel reload yet, so just go around
+		return &WaitItem{10 * time.Second, "retrying followed channels list"}
+	}
+	return nil
 }
 
 func (watcher *ChannelWatcher) next() WaitItem {
@@ -387,8 +401,6 @@ func (watcher *ChannelWatcher) next() WaitItem {
 	// do channel reload if necessary
 	if app.need_channels_refresh {
 		msg("doing a refresh")
-		watcher.app.lastReloadTime = curTime
-		app.need_channels_refresh = false
 		watcher.channels_followed = make(map[ChannelID]bool)
 		watcher.channel_info = make(map[ChannelID]*ChannelInfo)
 		watcher.channels_followed_names = []string{}
@@ -447,11 +459,15 @@ func (watcher *ChannelWatcher) next() WaitItem {
 			"users", *app.options.username, "follows",
 			"channels")
 		msg("after paged kraken call for follows by user response")
-		assert(err == nil, "follows pager error: %s", err)
+		if ret := watcher.checkFollowsRequestError(err, "pager"); ret != nil {
+			return *ret
+		}
 		for pager.More() {
 			var follow FollowEntry
 			err = pager.Next(&follow)
-			assert(err == nil, "follows get error: %s", err)
+			if ret := watcher.checkFollowsRequestError(err, "get request"); ret != nil {
+				return *ret
+			}
 
 			channel := follow.Channel
 			channel_id := channel.Id
@@ -488,6 +504,10 @@ func (watcher *ChannelWatcher) next() WaitItem {
 		app.getEventsInterface().init_channel_display(followed_channel_entries)
 
 		msg("channels reload complete")
+
+		watcher.app.lastReloadTime = curTime
+		app.need_channels_refresh = false
+		watcher.channel_load_retries = 0
 
 		app.getEventsInterface()._channels_reload_complete()
 	} // done channels refresh
