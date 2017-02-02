@@ -439,8 +439,6 @@ func (watcher *ChannelWatcher) next() WaitItem {
 
 		notificationsDisabledFor := []string{}
 
-		// FIXME this will want to change to something that will support the paged query
-
 		// twitch.api.v3.follows.by_user
 		type FollowEntry struct {
 			Channel       *ChannelInfo
