@@ -290,16 +290,19 @@ func (app *OurTwitchNotifierMain) getUrlForListEntry(isOnline bool, index int) (
 	return url, true
 }
 
-func (app *OurTwitchNotifierMain) openSiteForListEntry(isOnline bool, e wx.Event) {
-	commandEvent := wx.ToCommandEvent(e)
-
-	index := commandEvent.GetInt()
-
+func (app *OurTwitchNotifierMain) openSiteForListEntryIndex(isOnline bool, index int) {
 	url, found := app.getUrlForListEntry(isOnline, index)
 
 	if found {
 		webbrowser_open(url)
 	}
+}
+
+func (app *OurTwitchNotifierMain) openSiteForListEntry(isOnline bool, e wx.Event) {
+	commandEvent := wx.ToCommandEvent(e)
+
+	index := commandEvent.GetInt()
+	app.openSiteForListEntryIndex(isOnline, index)
 }
 
 // Note that this implementation will run the callback on another thread, so the callback needs to pass control

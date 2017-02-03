@@ -278,6 +278,7 @@ func (win *MainStatusWindowImpl) clearStreamInfo() {
 }
 
 func (win *MainStatusWindowImpl) clearInfo() {
+	win.button_open_channel.Enable(false)
 	win.clearStreamInfo()
 }
 
@@ -319,6 +320,9 @@ func (win *MainStatusWindowImpl) clearLogo() {
 }
 
 func (win *MainStatusWindowImpl) showInfo(channel *ChannelInfo, stream *StreamInfo) {
+
+	win.button_open_channel.Enable(true)
+
 	if channel == nil {
 		win.label_channel_status.SetLabel("")
 	} else {
@@ -507,6 +511,16 @@ func (win *MainStatusWindowImpl) _on_toolbar_balloon_timeout(e wx.Event) {
 
 func (win *MainStatusWindowImpl) _on_close(e wx.Event) {
 	win.Hide()
+}
+
+func (win *MainStatusWindowImpl) _on_button_open_channel_click(e wx.Event) {
+	onlineSelection := win.list_online.GetSelection()
+	offlineSelection := win.list_offline.GetSelection()
+	if onlineSelection != -1 {
+		win.main_obj.openSiteForListEntryIndex(true, onlineSelection)
+	} else if offlineSelection != -1 {
+		win.main_obj.openSiteForListEntryIndex(false, offlineSelection)
+	}
 }
 
 // MENU

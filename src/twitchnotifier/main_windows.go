@@ -43,6 +43,9 @@ func (win *MainStatusWindowImpl) additionalBindings() {
 	//wx.Bind(win.toolbar_icon, wx.EVT_TASKBAR_BALLOON_CLICK, win._on_toolbar_balloon_click, wx.ID_ANY)
 	wx.Bind(win.toolbar_icon, wx.EVT_TASKBAR_BALLOON_CLICK, on_cancellable_event_wrapper, wx.ID_ANY)
 	wx.Bind(win.toolbar_icon, wx.EVT_TASKBAR_BALLOON_TIMEOUT, win._on_toolbar_balloon_timeout, wx.ID_ANY)
+
+	win.button_open_channel.SetDefault()
+
 	win.createMenuBar(true)
 }
 
