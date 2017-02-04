@@ -147,6 +147,7 @@ func (app *OurTwitchNotifierMain) done_state_changes() {
 
 	if app.need_relayout {
 		app.window_impl.Frame.Layout()
+		app.window_impl.panel_1.Layout()
 		app.need_relayout = false
 	}
 }
