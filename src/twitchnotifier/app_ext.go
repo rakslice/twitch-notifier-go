@@ -98,6 +98,7 @@ func (app *OurTwitchNotifierMain) stream_state_change(channel_id ChannelID, new_
 	assert(channel_status != nil, "nil channel status entry at %s", channel_id)
 	old_online := channel_status.online
 	if old_online != new_online {
+		// Update channel lists
 		old_index := channel_status.idx
 		out_of_list := app._list_for_is_online(old_online)
 		out_of_list.Delete(old_index)
@@ -119,6 +120,15 @@ func (app *OurTwitchNotifierMain) stream_state_change(channel_id ChannelID, new_
 		channel_status.idx = new_index
 
 		app.need_relayout = true
+
+		// Add stream event log entry
+		var streamEventMessage string
+		if new_online {
+			streamEventMessage = app.create_online_event_message(channel_obj.Display_Name, stream)
+		} else {
+			streamEventMessage = app.create_offline_event_message(channel_obj.Display_Name)
+		}
+		app.stream_event_log(streamEventMessage, channel_id)
 	}
 }
 
@@ -584,7 +594,6 @@ func (watcher *ChannelWatcher) next() WaitItem {
 			//msg("stream fetch output: %v, %v", uint64(val), ok)
 			if !ok || val != stream_id {
 				// stream was previously offline or was a different stream id
-				app.stream_event_log(app.create_online_event_message(channel_name, stream), channel_id)
 				ok, notifications_enabled := app.follow_notification[channel_id]
 				if ok && notifications_enabled {
 					app.notify_for_stream(channel_name, stream)
@@ -603,7 +612,6 @@ func (watcher *ChannelWatcher) next() WaitItem {
 			if ok {
 				// was previously online
 				delete(watcher.last_streams, channel_id)
-				app.stream_event_log(app.create_offline_event_message(channel_name), channel_id)
 			}
 		}
 
