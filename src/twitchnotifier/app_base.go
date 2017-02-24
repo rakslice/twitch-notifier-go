@@ -124,7 +124,7 @@ func (app *TwitchNotifierMain) getEventsInterface() MainEventsInterface {
 }
 
 func (app *TwitchNotifierMain) channel_display_name(channel *ChannelInfo) string {
-	return fmt.Sprintf("%s (%v)", channel.Display_Name, uint32(channel.Id))
+	return fmt.Sprintf("%s", channel.Display_Name)
 }
 
 func (app *TwitchNotifierMain) create_show_info_suffix(stream *StreamInfo) string {
