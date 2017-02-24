@@ -27,7 +27,6 @@ type OurTwitchNotifierMain struct {
 	need_relayout             bool
 	lastReloadTime            time.Time
 	stream_event_channels	  []ChannelID
-	stream_event_count	  int
 }
 
 func InitOurTwitchNotifierMain() *OurTwitchNotifierMain {
@@ -180,8 +179,7 @@ func (app *OurTwitchNotifierMain) stream_event_log(message string, channel_id Ch
 		msg("In stream_event_log function, appending: %s", line_item)
 		app.window_impl.list_stream_event_log.Insert(line_item, uint(0))
 
-		app.stream_event_channels[app.stream_event_count] = channel_id
-		app.stream_event_count += 1
+		app.stream_event_channels = append(app.stream_event_channels, channel_id)
 	}
 }
 
@@ -189,7 +187,7 @@ func (app *OurTwitchNotifierMain) openSiteForStreamEventListEntryIndex(index int
 	if index == -1 {
 		return
 	}
-	event_num := app.stream_event_count - index - 1
+	event_num := len(app.stream_event_channels) - index - 1
 	channel_id := app.stream_event_channels[event_num]
 	channel := app._channel_for_id(channel_id)
 	if channel != nil {
