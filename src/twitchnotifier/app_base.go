@@ -127,26 +127,44 @@ func (app *TwitchNotifierMain) channel_display_name(channel *ChannelInfo) string
 	return fmt.Sprintf("%s (%v)", channel.Display_Name, uint32(channel.Id))
 }
 
-// Create a notification for the given stream
-func (app *TwitchNotifierMain) notify_for_stream(channel_name string, stream *StreamInfo) {
+func (app *TwitchNotifierMain) create_show_info_suffix(stream *StreamInfo) string {
+	game := stream.Game
+
+	var show_info string
+	if game == nil || *game == "" {
+		show_info = ""
+	} else {
+		show_info = fmt.Sprintf("with %s ", *game)
+	}
+	return show_info
+}
+
+func (app *TwitchNotifierMain) create_online_event_message(channel_name string, stream *StreamInfo) string {
+	return fmt.Sprintf("%s went online %s", channel_name, app.create_show_info_suffix(stream))
+}
+
+func (app *TwitchNotifierMain) create_offline_event_message(channel_name string) string {
+	return fmt.Sprintf("%s went offline", channel_name)
+}
+
+func (app *TwitchNotifierMain) create_online_message(channel_name string, stream *StreamInfo) string {
 	created_at := stream.Created_at
 	start_time, err := convert_rfc3339_time(created_at)
 	assert(err == nil, "Error converting time %s", created_at)
 	elapsed_s := time.Now().Round(time.Second).Sub(start_time.Round(time.Second))
 
-	stream_browser_link := stream.Channel.Url
-	game := stream.Game
-
-	var show_info string
-	if game == nil || *game == ""{
-		show_info = ""
-	} else {
-		show_info = fmt.Sprintf("with %s ", *game)
-	}
+	show_info := app.create_show_info_suffix(stream)
 
 	message := fmt.Sprintf("%s is now live %s(up %s)", channel_name, show_info, time_desc(elapsed_s))
+	return message
+}
 
+// Create a notification for the given stream
+func (app *TwitchNotifierMain) notify_for_stream(channel_name string, stream *StreamInfo) {
+
+	message := app.create_online_message(channel_name, stream)
 	msg("Showing message: '%s'", message)
+	stream_browser_link := stream.Channel.Url
 
 	// Supply a callback to handle the event where the notification was clicked
 	callback := NotificationCallback{channel_name, stream_browser_link}

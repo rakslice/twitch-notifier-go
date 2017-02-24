@@ -164,6 +164,14 @@ func (app *OurTwitchNotifierMain) log(message string) {
 	//msg("after log")
 }
 
+func (app *OurTwitchNotifierMain) stream_event_log(message string) {
+	if app.window_impl != nil {
+		line_item := fmt.Sprintf("%v: %s", time.Now(), message)
+		msg("In stream_event_log function, appending: %s", line_item)
+		app.window_impl.list_stream_event_log.Insert(line_item, uint(0))
+	}
+}
+
 // EVEN MORE APP METHODS
 
 func (app *OurTwitchNotifierMain) cancelDelayedUrlLoadsForContext(ctx string) {
@@ -545,6 +553,8 @@ func (watcher *ChannelWatcher) next() WaitItem {
 			val, ok := watcher.last_streams[channel_id]
 			//msg("stream fetch output: %v, %v", uint64(val), ok)
 			if !ok || val != stream_id {
+				// stream was previously offline or was a different stream id
+				app.stream_event_log(app.create_online_event_message(channel_name, stream))
 				ok, notifications_enabled := app.follow_notification[channel_id]
 				if ok && notifications_enabled {
 					app.notify_for_stream(channel_name, stream)
@@ -561,7 +571,9 @@ func (watcher *ChannelWatcher) next() WaitItem {
 			}
 			_, ok := watcher.last_streams[channel_id]
 			if ok {
+				// was previously online
 				delete(watcher.last_streams, channel_id)
+				app.stream_event_log(app.create_offline_event_message(channel_name))
 			}
 		}
 
