@@ -134,13 +134,17 @@ func (app *TwitchNotifierMain) create_show_info_suffix(stream *StreamInfo) strin
 	if game == nil || *game == "" {
 		show_info = ""
 	} else {
-		show_info = fmt.Sprintf("with %s ", *game)
+		show_info = fmt.Sprintf(" with %s", *game)
 	}
 	return show_info
 }
 
 func (app *TwitchNotifierMain) create_online_event_message(channel_name string, stream *StreamInfo) string {
-	return fmt.Sprintf("%s went online %s", channel_name, app.create_show_info_suffix(stream))
+	streamDesc := ""
+	if stream.Channel != nil {
+		streamDesc = stream.Channel.Status
+	}
+	return fmt.Sprintf("%s went online%s: '%s'", channel_name, app.create_show_info_suffix(stream), streamDesc)
 }
 
 func (app *TwitchNotifierMain) create_offline_event_message(channel_name string) string {
@@ -155,7 +159,7 @@ func (app *TwitchNotifierMain) create_online_message(channel_name string, stream
 
 	show_info := app.create_show_info_suffix(stream)
 
-	message := fmt.Sprintf("%s is now live %s(up %s)", channel_name, show_info, time_desc(elapsed_s))
+	message := fmt.Sprintf("%s is now live%s (up %s)", channel_name, show_info, time_desc(elapsed_s))
 	return message
 }
 
