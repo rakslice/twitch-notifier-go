@@ -150,6 +150,14 @@ func (app *OurTwitchNotifierMain) done_state_changes() {
 		app.window_impl.panel_1.Layout()
 		app.need_relayout = false
 	}
+
+	app.update_status_time()
+}
+
+func (app *OurTwitchNotifierMain) update_status_time() {
+	if app.window_impl != nil {
+		app.window_impl.set_status(fmt.Sprintf("Last poll %v", time.Now()))
+	}
 }
 
 func (app *OurTwitchNotifierMain) _channels_reload_complete() {

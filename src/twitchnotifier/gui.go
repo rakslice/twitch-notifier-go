@@ -463,6 +463,10 @@ func (win *MainStatusWindowImpl) enqueue_notification(title string, msg string, 
 	}
 }
 
+func (win *MainStatusWindowImpl) set_status(message string) {
+	win.label_status.SetLabel(message)
+}
+
 func (win *MainStatusWindowImpl) _dispense_remaining_notifications() {
 	// hack to avoid double-triggering of events that happens
 	if len(win.notifications_queue) == 0 {
