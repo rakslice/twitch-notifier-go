@@ -27,6 +27,7 @@ type OurTwitchNotifierMain struct {
 	need_relayout             bool
 	lastReloadTime            time.Time
 	stream_event_channels	  []ChannelID
+	stream_event_times	  []time.Time
 }
 
 func InitOurTwitchNotifierMain() *OurTwitchNotifierMain {
@@ -123,12 +124,15 @@ func (app *OurTwitchNotifierMain) stream_state_change(channel_id ChannelID, new_
 
 		// Add stream event log entry
 		var streamEventMessage string
+		var streamEventTime time.Time
 		if new_online {
 			streamEventMessage = app.create_online_event_message(channel_obj.Display_Name, stream)
+			streamEventTime = app.get_stream_start_time(stream)
 		} else {
 			streamEventMessage = app.create_offline_event_message(channel_obj.Display_Name)
+			streamEventTime = time.Now()
 		}
-		app.stream_event_log(streamEventMessage, channel_id)
+		app.stream_event_log(streamEventMessage, channel_id, streamEventTime)
 	}
 }
 
@@ -183,13 +187,33 @@ func (app *OurTwitchNotifierMain) log(message string) {
 	//msg("after log")
 }
 
-func (app *OurTwitchNotifierMain) stream_event_log(message string, channel_id ChannelID) {
-	if app.window_impl != nil {
-		line_item := fmt.Sprintf("%v: %s", time.Now(), message)
-		msg("In stream_event_log function, appending: %s", line_item)
-		app.window_impl.list_stream_event_log.Insert(line_item, uint(0))
+func InsertTime(slice []time.Time, pos int , value time.Time) []time.Time {
+	slice = append(slice, value) // just to extend the slice by one
+	copy(slice[pos+1:], slice[pos:])
+	slice[pos] = value
+	return slice
+}
 
-		app.stream_event_channels = append(app.stream_event_channels, channel_id)
+func InsertChannelID(slice []ChannelID, pos int , value ChannelID) []ChannelID {
+	slice = append(slice, value) // just to extend the slice by one
+	copy(slice[pos+1:], slice[pos:])
+	slice[pos] = value
+	return slice
+}
+
+func (app *OurTwitchNotifierMain) stream_event_log(message string, channel_id ChannelID, event_time time.Time) {
+	if app.window_impl != nil {
+		line_item := fmt.Sprintf("%v: %s", event_time, message)
+		msg("In stream_event_log function, inserting: %s", line_item)
+
+		// figure where to insert in time order
+		pos := sort.Search(len(app.stream_event_times), func(i int) bool { return app.stream_event_times[i].After(event_time) })
+
+
+		app.window_impl.list_stream_event_log.Insert(line_item, uint(len(app.stream_event_times) - pos))
+
+		app.stream_event_channels = InsertChannelID(app.stream_event_channels, pos, channel_id)
+		app.stream_event_times = InsertTime(app.stream_event_times, pos, event_time)
 	}
 }
 

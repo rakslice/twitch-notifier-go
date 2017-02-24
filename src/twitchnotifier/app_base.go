@@ -151,10 +151,15 @@ func (app *TwitchNotifierMain) create_offline_event_message(channel_name string)
 	return fmt.Sprintf("%s went offline", channel_name)
 }
 
-func (app *TwitchNotifierMain) create_online_message(channel_name string, stream *StreamInfo) string {
+func (app *TwitchNotifierMain) get_stream_start_time(stream *StreamInfo) time.Time {
 	created_at := stream.Created_at
 	start_time, err := convert_rfc3339_time(created_at)
 	assert(err == nil, "Error converting time %s", created_at)
+	return start_time
+}
+
+func (app *TwitchNotifierMain) create_online_message(channel_name string, stream *StreamInfo) string {
+	start_time := app.get_stream_start_time(stream)
 	elapsed_s := time.Now().Round(time.Second).Sub(start_time.Round(time.Second))
 
 	show_info := app.create_show_info_suffix(stream)
