@@ -26,6 +26,8 @@ type OurTwitchNotifierMain struct {
 	asynchttpclient           *asynchttpclient.Client
 	need_relayout             bool
 	lastReloadTime            time.Time
+	stream_event_channels	  []ChannelID
+	stream_event_count	  int
 }
 
 func InitOurTwitchNotifierMain() *OurTwitchNotifierMain {
@@ -172,12 +174,34 @@ func (app *OurTwitchNotifierMain) log(message string) {
 	//msg("after log")
 }
 
-func (app *OurTwitchNotifierMain) stream_event_log(message string) {
+func (app *OurTwitchNotifierMain) stream_event_log(message string, channel_id ChannelID) {
 	if app.window_impl != nil {
 		line_item := fmt.Sprintf("%v: %s", time.Now(), message)
 		msg("In stream_event_log function, appending: %s", line_item)
 		app.window_impl.list_stream_event_log.Insert(line_item, uint(0))
+
+		app.stream_event_channels[app.stream_event_count] = channel_id
+		app.stream_event_count += 1
 	}
+}
+
+func (app *OurTwitchNotifierMain) openSiteForStreamEventListEntryIndex(index int) {
+	if index == -1 {
+		return
+	}
+	event_num := app.stream_event_count - index - 1
+	channel_id := app.stream_event_channels[event_num]
+	channel := app._channel_for_id(channel_id)
+	if channel != nil {
+		webbrowser_open(channel.Url)
+	}
+}
+
+func (app *OurTwitchNotifierMain) openSiteForStreamEventListEntry(e wx.Event) {
+	commandEvent := wx.ToCommandEvent(e)
+
+	index := commandEvent.GetInt()
+	app.openSiteForStreamEventListEntryIndex(index)
 }
 
 // EVEN MORE APP METHODS
@@ -562,7 +586,7 @@ func (watcher *ChannelWatcher) next() WaitItem {
 			//msg("stream fetch output: %v, %v", uint64(val), ok)
 			if !ok || val != stream_id {
 				// stream was previously offline or was a different stream id
-				app.stream_event_log(app.create_online_event_message(channel_name, stream))
+				app.stream_event_log(app.create_online_event_message(channel_name, stream), channel_id)
 				ok, notifications_enabled := app.follow_notification[channel_id]
 				if ok && notifications_enabled {
 					app.notify_for_stream(channel_name, stream)
@@ -581,7 +605,7 @@ func (watcher *ChannelWatcher) next() WaitItem {
 			if ok {
 				// was previously online
 				delete(watcher.last_streams, channel_id)
-				app.stream_event_log(app.create_offline_event_message(channel_name))
+				app.stream_event_log(app.create_offline_event_message(channel_name), channel_id)
 			}
 		}
 

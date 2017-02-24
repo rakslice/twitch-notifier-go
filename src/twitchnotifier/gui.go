@@ -212,6 +212,10 @@ func (win *MainStatusWindowImpl) _on_button_reload_channels_click(e wx.Event) {
 	win.main_obj.doChannelsReload()
 }
 
+func (win *MainStatusWindowImpl) _on_list_stream_event_log_dclick(e wx.Event) {
+	win.main_obj.openSiteForStreamEventListEntry(e)
+}
+
 func (win *MainStatusWindowImpl) setChannelRefreshInProgress(value bool) {
 	if value {
 		win.button_reload_channels.Disable()
