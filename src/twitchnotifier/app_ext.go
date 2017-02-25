@@ -201,6 +201,10 @@ func InsertChannelID(slice []ChannelID, pos int , value ChannelID) []ChannelID {
 	return slice
 }
 
+func AtOrAfter(first time.Time, second time.Time) bool {
+	return first.Equal(second) || first.After(second)
+}
+
 func (app *OurTwitchNotifierMain) stream_event_log(message string, channel_id ChannelID, event_time time.Time) {
 	if app.window_impl != nil {
 		// Show all times in local time rounded to the nearest second
@@ -210,13 +214,27 @@ func (app *OurTwitchNotifierMain) stream_event_log(message string, channel_id Ch
 		msg("In stream_event_log function, inserting: %s", line_item)
 
 		// figure where to insert in time order
-		pos := sort.Search(len(app.stream_event_times), func(i int) bool { return app.stream_event_times[i].After(event_time) })
+		pos := sort.Search(len(app.stream_event_times), func(i int) bool { return AtOrAfter(app.stream_event_times[i], event_time) })
 
+		needNewEntry := true
 
-		app.window_impl.list_stream_event_log.Insert(line_item, uint(len(app.stream_event_times) - pos))
+		msg("Want entry at %v for %v at %v", pos, channel_id, event_time)
+		// check if any of the existing entries for this time match this one
+		for curPos := pos; curPos < len(app.stream_event_times) && app.stream_event_times[curPos].Equal(event_time); curPos++ {
+			msg("Existing entry for pos %v is for %v at %v", curPos, app.stream_event_channels[curPos], app.stream_event_times[curPos])
+			if app.stream_event_channels[curPos] == channel_id {
+				msg("Skipping new entry because it already exists")
+				needNewEntry = false
+				break
+			}
+		}
 
-		app.stream_event_channels = InsertChannelID(app.stream_event_channels, pos, channel_id)
-		app.stream_event_times = InsertTime(app.stream_event_times, pos, event_time)
+		if needNewEntry {
+			app.window_impl.list_stream_event_log.Insert(line_item, uint(len(app.stream_event_times) - pos))
+
+			app.stream_event_channels = InsertChannelID(app.stream_event_channels, pos, channel_id)
+			app.stream_event_times = InsertTime(app.stream_event_times, pos, event_time)
+		}
 	}
 }
 
