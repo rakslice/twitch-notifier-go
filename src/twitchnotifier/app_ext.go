@@ -203,7 +203,9 @@ func InsertChannelID(slice []ChannelID, pos int , value ChannelID) []ChannelID {
 
 func (app *OurTwitchNotifierMain) stream_event_log(message string, channel_id ChannelID, event_time time.Time) {
 	if app.window_impl != nil {
-		event_time = event_time.Local()
+		// Show all times in local time rounded to the nearest second
+		event_time = event_time.Local().Round(time.Second)
+
 		line_item := fmt.Sprintf("%v: %s", event_time, message)
 		msg("In stream_event_log function, inserting: %s", line_item)
 
