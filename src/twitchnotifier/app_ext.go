@@ -99,23 +99,33 @@ func (app *OurTwitchNotifierMain) stream_state_change(channel_id ChannelID, new_
 	assert(channel_status != nil, "nil channel status entry at %s", channel_id)
 	old_online := channel_status.online
 	if old_online != new_online {
-		// Update channel lists
+		// item is moving from one list to another
+		new_line_item := app.channel_display_name(channel_obj)
+
+		// remove item from the old list
 		old_index := channel_status.idx
 		out_of_list := app._list_for_is_online(old_online)
 		out_of_list.Delete(old_index)
 
+		// figure out location to insert in the new list
 		into_list := app._list_for_is_online(new_online)
-		new_index := into_list.GetCount()
-		into_list.Append(app.channel_display_name(channel_obj))
+		//into_list_count := into_list.GetCount()
+		into_list_items := into_list.GetStrings()
+		new_index := uint(sort.Search(len(into_list_items), func(i int) bool { return strings.ToLower(into_list_items[i]) >= strings.ToLower(new_line_item) }))
 
-		// update the later indexes
+		// update the other list indexes
 		for _, cur_status := range app.channel_status_by_id {
 			if cur_status.online == old_online && cur_status.idx > old_index {
+				// items in the old list after the removed item get their index reduced by one
 				cur_status.idx -= 1
 			} else if cur_status.online == new_online && cur_status.idx >= new_index {
+				// items in the new list that should go after the new item get their index increased by one
 				cur_status.idx += 1
 			}
 		}
+
+		// actually insert into the dest list
+		into_list.Insert(new_line_item, new_index)
 
 		channel_status.online = new_online
 		channel_status.idx = new_index
