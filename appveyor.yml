@@ -12,7 +12,7 @@ build_script:
 - cmd: >-
     set GOPATH=c:\project\
 
-    set PATH=C:\mingw-w64\i686-5.3.0-posix-dwarf-rt_v4-rev0\mingw32\bin;%GOROOT%\bin;c:\project\bin;%PATH%
+    set PATH=C:\mingw-w64\i686-5.3.0-posix-dwarf-rt_v4-rev0\mingw64\bin;%GOROOT%\bin;c:\project\bin;%PATH%
 
     go env
 
