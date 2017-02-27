@@ -210,7 +210,7 @@ func (app *OurTwitchNotifierMain) stream_event_log(message string, channel_id Ch
 		// Show all times in local time rounded to the nearest second
 		event_time = event_time.Local().Round(time.Second)
 
-		line_item := fmt.Sprintf("%v: %s", event_time, message)
+		line_item := fmt.Sprintf(`%v: %s`, event_time, message)
 		msg("In stream_event_log function, inserting: %s", line_item)
 
 		// figure where to insert in time order
@@ -223,7 +223,8 @@ func (app *OurTwitchNotifierMain) stream_event_log(message string, channel_id Ch
 		for curPos := pos; curPos < len(app.stream_event_times) && app.stream_event_times[curPos].Equal(event_time); curPos++ {
 			msg("Existing entry for pos %v is for %v at %v", curPos, app.stream_event_channels[curPos], app.stream_event_times[curPos])
 			if app.stream_event_channels[curPos] == channel_id {
-				msg("Skipping new entry because it already exists")
+				msg("Skipping inserting new entry because it already exists")
+				pos = curPos
 				needNewEntry = false
 				break
 			}
@@ -234,6 +235,10 @@ func (app *OurTwitchNotifierMain) stream_event_log(message string, channel_id Ch
 
 			app.stream_event_channels = InsertChannelID(app.stream_event_channels, pos, channel_id)
 			app.stream_event_times = InsertTime(app.stream_event_times, pos, event_time)
+		} else {
+			listBoxPos := uint(len(app.stream_event_times) - pos - 1)
+			app.window_impl.list_stream_event_log.Delete(listBoxPos)
+			app.window_impl.list_stream_event_log.Insert(line_item, listBoxPos)
 		}
 	}
 }

@@ -86,6 +86,8 @@ func InitMainStatusWindowImpl(testMode bool, replacementOptionsFunc func() *Opti
 
 	wx.Bind(out, wx.EVT_CLOSE_WINDOW, out._on_close, out.GetId())
 
+	wx.Bind(out, wx.EVT_LISTBOX_DCLICK, out._on_list_stream_event_log_dclick, out.list_stream_event_log.GetId())
+
 	twitch_notifier_main := InitOurTwitchNotifierMain()
 	if replacementOptionsFunc == nil {
 		twitch_notifier_main.options = parse_args()

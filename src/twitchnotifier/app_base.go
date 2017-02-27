@@ -7,6 +7,10 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"html"
+	"path/filepath"
+	"path"
+	"io/ioutil"
 )
 
 // BASE APP CLASS
@@ -139,16 +143,33 @@ func (app *TwitchNotifierMain) create_show_info_suffix(stream *StreamInfo) strin
 	return show_info
 }
 
+//noinspection GoUnusedFunction
+func templatable(filename_proper string, default_value string) string {
+	// A helper function to make a text template overridable by a file in the assets dir
+	template_path, err := filepath.Abs("assets")
+	assert(err == nil, "template path failed: %s", err)
+	filename := path.Join(template_path, filename_proper)
+	if fileExists(filename) {
+		buf, err := ioutil.ReadFile(filename)
+		assert(err == nil, "error reading template file '%s': %s", filename, err)
+		return string(buf)
+	} else {
+		return default_value
+	}
+}
+
 func (app *TwitchNotifierMain) create_online_event_message(channel_name string, stream *StreamInfo) string {
 	streamDesc := ""
 	if stream.Channel != nil {
 		streamDesc = stream.Channel.Status
 	}
-	return fmt.Sprintf("%s went online%s: '%s'", channel_name, app.create_show_info_suffix(stream), streamDesc)
+	return fmt.Sprintf(`<span style="font-weight: bold;">%s</span> went online%s<div>'<span style="font-style: italic">%s</span>'</div>`,
+		html.EscapeString(channel_name), html.EscapeString(app.create_show_info_suffix(stream)),
+		html.EscapeString(streamDesc))
 }
 
 func (app *TwitchNotifierMain) create_offline_event_message(channel_name string) string {
-	return fmt.Sprintf("%s went offline", channel_name)
+	return fmt.Sprintf(`<span style="font-weight: bold;">%s</span> went offline`, html.EscapeString(channel_name))
 }
 
 func (app *TwitchNotifierMain) get_stream_start_time(stream *StreamInfo) time.Time {
