@@ -1,5 +1,8 @@
 # most of this is requirements for github.com/dontpanic92/wxGo cribbed from that project's appveyor.yml
 
+# select the previous build image with known working MSYS2
+os: Previous Visual Studio 2015
+
 version: 1.0.{build}
 platform: x64
 clone_folder: c:\project\src\github.com\rakslice\twitch-notifier-go
