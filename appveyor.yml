@@ -14,9 +14,9 @@ build_script:
 
     set PATH=C:\mingw-w64\i686-5.3.0-posix-dwarf-rt_v4-rev0\mingw64\bin;%GOROOT%\bin;c:\msys64\mingw64\bin;c:\project\bin;%PATH%
 
-    set CXX=C:\mingw-w64\i686-5.3.0-posix-dwarf-rt_v4-rev0\mingw64\bin\g++
+    set CXX=C:\mingw-w64\i686-5.3.0-posix-dwarf-rt_v4-rev0\mingw64\bin\g++.exe
 
-    set CC=C:\mingw-w64\i686-5.3.0-posix-dwarf-rt_v4-rev0\mingw64\bin\gcc
+    set CC=C:\mingw-w64\i686-5.3.0-posix-dwarf-rt_v4-rev0\mingw64\bin\gcc.exe
 
     go env
 
