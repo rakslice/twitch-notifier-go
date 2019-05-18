@@ -28,6 +28,8 @@ Unlike the python version, which has a username-only mode that looks at a user's
 
 See [twitch-notifier-go black hole for tasks on Trello](https://trello.com/b/1kPOevw9/twitch-notifier-go-black-hole-for-tasks)
 
+This is essentially unmaintained at the moment. Platform notifications are too quickly a moving target for my taste. Also I ran into stability problems with the GUI on Mac; wxGo tries to use wrap wxWidgets' designated single GUI thread as-is in Go, where having any kind of 'special' thread is anathema, so I expect that it is a dead end.
+
 ## Options
 
     -auth-oauth TOKEN   - OAuth token to use
